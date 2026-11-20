@@ -1,21 +1,53 @@
-# Metal Slug 3D — Web Local Prototype
+# Metal Slug 3 — Mission 1 (arcade style, local play)
 
-Bản prototype 3D Run-and-Gun lấy cảm hứng từ **Metal Slug** chạy trực tiếp trên trình duyệt (Web Local / LAN), xây dựng bằng **Three.js + Vite**, hỗ trợ cả **Bàn phím** và **Tay cầm PlayStation / Xbox (Gamepad API)**.
+A browser remake of Metal Slug 3's first mission in the style of the arcade original: a 304×224 screen scaled up
+in whole pixels, the original sprites and scenery, and the arcade rules. For local, non-commercial play only;
+the art belongs to SNK.
 
-## Chạy nhanh (hỗ trợ mở qua LAN `--host`)
+## Run
+
 ```bash
 npm install
-npm run dev
+npm run dev      # http://localhost:5174 (also reachable on the LAN)
 ```
 
-## Điều khiển
-- `A` / `D` hoặc `⬅️` / `➡️`: Di chuyển
-- `W` / `S` hoặc `⬆️` / `⬇️`: Ngắm lên / Ngồi né đạn
-- `Space` / `K`: Nhảy
-- `J` / Click chuột trái: Bắn súng (`Handgun`, `HMG`, `Shotgun`, `Rocket`)
-- `G` / `L`: Ném lựu đạn (hoặc bắn đại bác khi lái xe tăng)
-- `E`: Lên / Nhảy khỏi xe tăng **SV-001 Metal Slug**
-- **Tay cầm PS/Xbox:** Cắm vào máy là tự nhận (D-Pad/Stick di chuyển, `X/A` nhảy, `Vuông/R2` bắn, `Tròn/R1` lựu đạn, `Tam giác/Y` lên/xuống xe tăng).
+## Controls
 
-## Tài liệu đánh giá
-- [Đánh giá độ khả thi đồ họa chuẩn PlayStation & Hạn chế thiết kế](docs/FEASIBILITY-PS2-GRAPHICS.md)
+| Action | Keyboard | Gamepad |
+| :--- | :--- | :--- |
+| Move | ← → or A D | D-pad / left stick |
+| Aim up / crouch | ↑ / ↓ (W / S) | up / down |
+| Shoot (knife when next to an enemy) | J or Z, mouse click | Square / X, R2 |
+| Jump | K, Space or X | Cross / A |
+| Grenade | L, G or C | Circle / B, R1 |
+| Start / continue | Enter | Options / Start |
+
+## What follows the arcade
+
+- One hit kills Marco; 2 spare lives, a 60-count TIME clock, CONTINUE countdown, GAME OVER.
+- Upper body and legs are separate sprites (run, jump, crouch, shoot, aim up, knife, grenade, death, victory).
+- The handgun fires once per press; Heavy Machine Gun (H), Rocket Launcher (R) and Shotgun (S) come from P.O.W.s and
+  fall back to the handgun when empty. Shooting a rebel at close range uses the knife. 10 grenades, more from crates.
+- Rebel soldiers idle or chat until they spot Marco, panic, then rush in with a knife or lob stick grenades;
+  they die with the shot or knife-cut death animations.
+- P.O.W.s are freed by touch or gunfire, walk over, hand over an item, salute and run off.
+- The camera only scrolls forward, stops at enemy waves until they are cleared ("GO"), and the last wave ends the
+  mission with the victory pose and the P.O.W. bonus.
+- Scenery: Mission 1 beach, wrecked ship and swamp bridge, jungle; far panorama with parallax and the animated sea.
+
+## Layout
+
+- `src/arcade/game.js` — rules, fixed 60 Hz steps, no DOM (tested in `tests/arcade.test.js`).
+- `src/arcade/level.js` — ground pieces, walkable ground lines and the encounter script.
+- `src/arcade/render.js`, `assets.js`, `input.js`, `audio.js` — drawing, atlas, controls, synthesized sound.
+- `tools/` — art pipeline: `ms3-manifest.mjs` lists which sprites to cut from `art-source/` sheets;
+  `npm run atlas` rebuilds `public/assets/ms3/` (writes a check montage to `tools/out/`);
+  `node tools/sheet.mjs preview <sheet> x y w h scale out.png` helps find coordinates.
+
+## Tests
+
+```bash
+npm test
+```
+
+Includes a bot run that clears every wave and completes Mission 1.
