@@ -1,79 +1,51 @@
-* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-
-html, body, #app {
-  width: 100%; height: 100%; overflow: hidden;
-  background: #1a1412; color: #fff8e7;
-  font-family: 'Impact', 'Segoe UI', system-ui, sans-serif;
+/* Arcade cabinet: black surround, pixel-perfect integer-scaled 304x224 screen. */
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  color: #d8d8d8;
+  font: 11px/1.4 ui-monospace, Consolas, monospace;
+  overflow: hidden;
 }
 
-#game-canvas { display: block; width: 100%; height: 100%; }
-.hidden { display: none !important; }
-
-.hud {
-  position: fixed; top: 0; left: 0; right: 0;
-  padding: 12px 16px; display: flex; justify-content: space-between; align-items: flex-start;
-  pointer-events: none; z-index: 10;
-}
-.hud-group { display: flex; gap: 8px; pointer-events: auto; }
-.hud-box {
-  background: rgba(24, 20, 18, 0.85);
-  border: 2px solid #f4a261; border-radius: 8px;
-  padding: 6px 12px; display: flex; flex-direction: column;
-}
-.hud-box span { font-size: 10px; letter-spacing: 0.1em; color: #f4a261; font-family: 'Segoe UI', sans-serif; font-weight: 800; }
-.hud-box strong { font-size: 18px; letter-spacing: 0.04em; color: #fff; }
-.tank-box { border-color: #06d6a0; }
-.tank-box span { color: #06d6a0; }
-
-.hud-center { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.arcade-banner {
-  background: rgba(230, 57, 70, 0.92);
-  border: 2px solid #ffd166; padding: 8px 20px; border-radius: 8px;
-  font-size: 20px; letter-spacing: 0.08em; color: #ffd166;
-  text-shadow: 2px 2px 0 #000;
+#cabinet {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
 }
 
-.boss-bar-wrap {
-  width: 300px; background: rgba(0, 0, 0, 0.78);
-  border: 2px solid #e63946; border-radius: 8px; padding: 6px 10px;
-}
-.boss-bar-wrap span { font-size: 11px; color: #ffd166; display: block; margin-bottom: 4px; font-family: 'Segoe UI', sans-serif; font-weight: 800; }
-.boss-bar { height: 10px; background: #333; border-radius: 4px; overflow: hidden; }
-.boss-hp-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #e63946, #ffd166); }
-
-.hud-btn {
-  background: rgba(24, 20, 18, 0.85); border: 2px solid #f4a261;
-  color: #fff; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 16px;
+#screen {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #000;
 }
 
-.modal {
-  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-  background: rgba(16, 12, 10, 0.75); backdrop-filter: blur(5px); z-index: 20; padding: 16px;
+#loading {
+  position: absolute;
+  letter-spacing: 0.2em;
 }
-.card {
-  width: 100%; max-width: 540px; background: #221d1a;
-  border: 3px solid #f4a261; border-radius: 14px; padding: 26px; text-align: center;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+
+#help {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  align-items: center;
+  opacity: 0.55;
+  pointer-events: none;
 }
-.tag {
-  display: inline-block; font-family: 'Segoe UI', sans-serif; font-size: 11px; font-weight: 800;
-  color: #ffd166; background: rgba(244, 162, 97, 0.2); border: 1px solid #f4a261;
-  padding: 4px 10px; border-radius: 999px; margin-bottom: 10px;
+
+#help button {
+  pointer-events: auto;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 1px solid #555;
+  padding: 1px 6px;
+  cursor: pointer;
 }
-h1 { font-size: 38px; letter-spacing: 0.06em; color: #ffd166; text-shadow: 3px 3px 0 #b5172c; margin-bottom: 8px; }
-h2 { font-size: 28px; color: #ffd166; margin-bottom: 14px; }
-.subtitle { font-family: 'Segoe UI', sans-serif; font-size: 13px; color: #e2d5c8; margin-bottom: 16px; }
-.controls-box {
-  font-family: 'Segoe UI', sans-serif; font-size: 12px; text-align: left;
-  background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(244, 162, 97, 0.4);
-  border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; margin-bottom: 18px;
-}
-.primary-btn {
-  width: 100%; padding: 14px; border-radius: 10px; border: 2px solid #ffd166;
-  background: linear-gradient(180deg, #e63946, #a4161a); color: #ffd166;
-  font-family: 'Impact', sans-serif; font-size: 18px; letter-spacing: 0.08em; cursor: pointer;
-}
-.end-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
-.end-stats > div { background: rgba(0, 0, 0, 0.35); padding: 10px; border-radius: 8px; display: flex; flex-direction: column; }
-.end-stats span { font-family: 'Segoe UI', sans-serif; font-size: 10px; color: #f4a261; font-weight: 800; }
-.end-stats strong { font-size: 22px; }

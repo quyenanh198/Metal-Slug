@@ -1,70 +1,21 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Metal Slug 3D — Local Arcade</title>
+    <title>Metal Slug 3 — Mission 1 (local)</title>
     <link rel="stylesheet" href="/src/styles/main.css" />
   </head>
   <body>
-    <div id="app">
-      <canvas id="game-canvas"></canvas>
-
-      <!-- Arcade HUD -->
-      <header id="hud" class="hud hidden">
-        <div class="hud-group">
-          <div class="hud-box"><span>ARMS</span><strong id="hud-weapon">P • ∞</strong></div>
-          <div class="hud-box"><span>BOMB</span><strong id="hud-bomb">10</strong></div>
-          <div class="hud-box"><span>HP / LIVES</span><strong id="hud-hp">100 • ❤️❤️❤️</strong></div>
-          <div id="hud-tank-box" class="hud-box tank-box hidden"><span>SV-001</span><strong id="hud-tank">160</strong></div>
-        </div>
-
-        <div class="hud-center">
-          <div id="hud-banner" class="arcade-banner hidden">MISSION 1 START!</div>
-          <div id="boss-bar-wrap" class="boss-bar-wrap hidden">
-            <span>IRON TITAN BOSS</span>
-            <div class="boss-bar"><div id="boss-hp-fill" class="boss-hp-fill"></div></div>
-          </div>
-        </div>
-
-        <div class="hud-group">
-          <div class="hud-box"><span>SCORE</span><strong id="hud-score">0</strong></div>
-          <button id="btn-mute" class="hud-btn">🔊</button>
-        </div>
-      </header>
-
-      <!-- Start Modal -->
-      <section id="menu-modal" class="modal">
-        <div class="card">
-          <div class="tag">3D RUN-AND-GUN • WEB LOCAL • GAMEPAD READY</div>
-          <h1>METAL SLUG 3D</h1>
-          <p class="subtitle">Bắn phá 8 hướng, giải cứu POW, lái xe tăng SV-001 và hạ gục Boss Iron Titan!</p>
-          <div class="controls-box">
-            <div><strong>A / D (hoặc ⬅️ ➡️):</strong> Di chuyển | <strong>W / S:</strong> Ngắm lên / Ngồi</div>
-            <div><strong>Space / K:</strong> Nhảy | <strong>J / Click trái:</strong> Bắn súng</div>
-            <div><strong>G / L:</strong> Ném lựu đạn / Đại bác xe tăng</div>
-            <div><strong>E:</strong> Lên / Nhảy khỏi xe tăng SV-001</div>
-            <div><strong>🎮 Tay cầm PS/Xbox:</strong> Tự động nhận diện qua Gamepad API</div>
-          </div>
-          <button id="btn-start" class="primary-btn">INSERT COIN — MISSION START [Enter]</button>
-        </div>
-      </section>
-
-      <!-- End Modal -->
-      <section id="end-modal" class="modal hidden">
-        <div class="card">
-          <div id="end-tag" class="tag">MISSION COMPLETE</div>
-          <h2 id="end-title">🏆 MISSION 1 COMPLETE!</h2>
-          <div class="end-stats">
-            <div><span>SCORE</span><strong id="end-score">0</strong></div>
-            <div><span>POW RESCUED</span><strong id="end-pow">0</strong></div>
-            <div><span>ENEMIES</span><strong id="end-kills">0</strong></div>
-          </div>
-          <button id="btn-retry" class="primary-btn">CHƠI LẠI [Enter]</button>
-        </div>
-      </section>
-    </div>
-
+    <main id="cabinet">
+      <canvas id="screen" aria-label="Metal Slug 3 Mission 1"></canvas>
+      <p id="loading">LOADING...</p>
+    </main>
+    <footer id="help">
+      <span>MOVE ←→ / A D · AIM ↑ · CROUCH ↓</span>
+      <span>SHOOT J · JUMP K / SPACE · BOMB L · START ENTER</span>
+      <button id="mute" type="button">SOUND ON</button>
+    </footer>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

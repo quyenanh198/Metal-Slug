@@ -1,19 +1,18 @@
 {
-  "name": "metal-slug-3d-local",
+  "name": "metal-slug-3-arcade-local",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Metal Slug 3D Web Local Run-and-Gun Prototype (Three.js + Vite)",
+  "description": "Metal Slug 3 Mission 1, arcade style (2D canvas, 304x224) - local play",
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview --host",
-    "test": "node --test tests/*.test.js"
-  },
-  "dependencies": {
-    "three": "^0.170.0"
+    "test": "node --test tests/*.test.js",
+    "atlas": "node tools/build-atlas.mjs"
   },
   "devDependencies": {
+    "pngjs": "^7.0.0",
     "vite": "^6.0.0"
   }
 }
