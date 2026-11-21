@@ -10,6 +10,7 @@ const EXPLO = 'Explosion SFX [11305].png';
 const WSFX = 'Weapon SFX [20654].png';
 const HUD = 'HUD & Interface [29721].png';
 const M1 = 'Mission 1 [37874].png';
+const HERMIT = 'Huge Hermit [99310].png';
 
 export const ANIMS = [
   // Marco, handgun set. Upper body and legs are separate sprites, drawn on top of each other like the arcade.
@@ -84,5 +85,23 @@ export const ANIMS = [
   { name: 'm1.sea', sheet: M1, region: [1, 276, 707, 393], fps: 8, minW: 600, anchor: 'topleft' },
   { name: 'm1.beach', sheet: M1, region: [0, 1196, 1610, 209], out: 'm1_beach.png', erase: [[1528, 1196, 82, 72]] },
   { name: 'm1.ship', sheet: M1, region: [1614, 858, 1866, 226], out: 'm1_ship.png' },
-  { name: 'm1.jungle', sheet: M1, region: [3481, 878, 1190, 206], out: 'm1_jungle.png' }
+  { name: 'm1.jungle', sheet: M1, region: [3481, 878, 1190, 206], out: 'm1_jungle.png' },
+
+  // Boss stage: sunset sea backdrop and the Slug Transport Ferry Marco fights from (intact and damaged rows)
+  { name: 'm1.sunset', sheet: M1, region: [2377, 82, 512, 192], out: 'm1_sunset.png', bg: [248, 0, 248] },
+  { name: 'ferry', sheet: M1, region: [709, 289, 3180, 100], bg: [248, 0, 248], fps: 8, sortX: true, minW: 150 },
+  { name: 'ferry.damaged', sheet: M1, region: [709, 398, 3180, 100], bg: [248, 0, 248], fps: 8, sortX: true, minW: 150, pick: [0, 1, 2, 3, 4, 5, 6, 7] },
+  { name: 'ferry.wreck', sheet: M1, region: [709, 398, 3180, 100], bg: [248, 0, 248], fps: 8, sortX: true, minW: 150, pick: [8, 9, 10, 11, 12, 13, 14] },
+
+  // Huge Hermit (sheet faces left). Label strips sit above each row, so regions start just below them.
+  { name: 'hermit.move', sheet: HERMIT, region: [0, 14, 2580, 208], fps: 10, sortX: true, minW: 150, gap: 3 },
+  { name: 'hermit.shoot', sheet: HERMIT, region: [0, 234, 2580, 206], fps: 12, loop: false, sortX: true, minW: 150, gap: 3 },
+  { name: 'hermit.deploy', sheet: HERMIT, region: [0, 653, 2580, 212], fps: 10, loop: false, sortX: true, minW: 150, gap: 3 },
+  { name: 'hermit.cmove', sheet: HERMIT, region: [0, 981, 2580, 212], fps: 10, sortX: true, minW: 150, gap: 3 },
+  { name: 'hermit.cshoot', sheet: HERMIT, region: [0, 1205, 2580, 212], fps: 12, loop: false, sortX: true, minW: 150, gap: 3 },
+  { name: 'hermit.defeat', sheet: HERMIT, region: [0, 1940, 2590, 186], fps: 10, sortX: true, minW: 150, gap: 3 },
+  { name: 'hermit.waves', sheet: HERMIT, regions: [[0, 2139, 2400, 58], [0, 2197, 800, 54]], fps: 12, sortX: true, minW: 200, gap: 3 },
+  { name: 'hermit.fireball', sheet: HERMIT, region: [0, 454, 100, 27], fps: 12, anchor: 'center', sortX: true, pick: [0, 2] },
+  { name: 'hermit.boom', sheet: HERMIT, region: [0, 481, 700, 38], fps: 24, loop: false, sortX: true, minW: 10 },
+  { name: 'hermit.shell', sheet: HERMIT, region: [0, 1430, 430, 48], fps: 1, anchor: 'center', sortX: true, minW: 20 }
 ];

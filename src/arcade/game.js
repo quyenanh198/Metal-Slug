@@ -1,5 +1,5 @@
 // Metal Slug 3 style rules, Mission 1. Pure logic (no DOM): fixed 60 Hz steps, units are pixels and frames.
-import { groundAt, LEVEL_END, LEVEL_START, pieceAt, SCREEN_W, SCRIPT } from './level.js';
+import { ARENA, groundAt, LEVEL_END, LEVEL_START, pieceAt, SCREEN_W, SCRIPT } from './level.js';
 
 export const FPS = 60;
 const GRAVITY = 0.28;
@@ -26,6 +26,7 @@ export function createGame(seed = 7) {
     player: newPlayer(LEVEL_START + 40),
     enemies: [], bullets: [], grenades: [], prisoners: [], items: [], effects: [],
     events: [], banner: null, nextId: 1,
+    arena: false, boss: null, transition: null, // boss stage state
     prevInput: {}
   };
 }
@@ -75,6 +76,7 @@ export function step(g, input) {
     return;
   }
 
+  if (g.transition !== null) stepTransition(g);
   runScript(g);
   stepPlayer(g, input, pressed);
   stepActors(g);
@@ -137,7 +139,8 @@ function stepPlayer(g, input, pressed) {
   p.moving = dir !== 0;
   if (p.moving) { p.x += dir * speed; p.walkT++; } else p.walkT = 0;
   p.x = Math.max(g.camX + 10, Math.min(g.camX + SCREEN_W - 10, p.x));
-  p.x = Math.min(p.x, LEVEL_END - 10);
+  if (g.arena) p.x = Math.max(ARENA.x + ARENA.minX, Math.min(ARENA.x + ARENA.maxX, p.x));
+  else p.x = Math.min(p.x, LEVEL_END - 10);
 
   if (pressed('jump') && p.grounded && !p.crouch) { p.vy = JUMP_VY; p.grounded = false; p.airT = 0; ev(g, 'jump'); }
   const ground = groundAt(p.x);
@@ -197,6 +200,8 @@ function attack(g) {
       const dx = (e.x - m.x) * vx, dy = e.y - 18 - m.y;
       if ((vx && dx > -4 && dx < 70 && Math.abs(dy) < 30) || (vy && Math.abs(e.x - m.x) < 26 && dy < 0 && dy > -80)) killEnemy(g, e);
     }
+    const b = g.boss;
+    if (b && vx < 0 && m.x - (b.x + BOSS_BOX.right) < 70) hitBoss(g, 4); // the boss is always to the left
     ev(g, 'shotgun');
   } else {
     const jitter = p.weapon === 'H' ? (g.frame % 2 ? 2 : -2) : 0;
@@ -251,6 +256,10 @@ function stepActors(g) {
           b.life = 0;
         }
       }
+      if (b.life > 0 && inBoss(g, b.x, b.y)) {
+        if (b.kind === 'rocket') explode(g, b.x, b.y, 28, 'p', 'fx.boom.medium'); else { hitBoss(g, 1); g.effects.push({ anim: 'fx.boom.small', x: b.x, y: b.y + 6, t: 12 }); }
+        b.life = 0;
+      }
       for (const pw of g.prisoners) if (pw.state === 'tied' && b.life > 0 && Math.abs(pw.x - b.x) < 10 && b.y > pw.y - 26 && b.y < pw.y) { freePrisoner(g, pw); b.life = 0; }
       if (b.kind === 'rocket' && b.life > 0 && b.y >= groundAt(b.x)) { explode(g, b.x, b.y, 28, 'p', 'fx.boom.medium'); b.life = 0; }
       if (b.kind === 'rocket') b.vx *= 1.05;
@@ -261,18 +270,21 @@ function stepActors(g) {
   // grenades (player bombs and rebel stick grenades)
   for (const gr of g.grenades) {
     gr.t++;
-    gr.vy += gr.from === 'p' ? 0.2 : 0.16;
+    gr.vy += gr.a ?? (gr.from === 'p' ? 0.2 : 0.16);
     gr.x += gr.vx; gr.y += gr.vy;
     const gy = groundAt(gr.x);
-    const hitEnemy = gr.from === 'p' && g.enemies.some((e) => alive(e) && Math.abs(e.x - gr.x) < 10 && gr.y > e.y - 36 && gr.y < e.y);
-    if (gr.y >= gy || hitEnemy) {
+    const hitEnemy = gr.from === 'p' && (g.enemies.some((e) => alive(e) && Math.abs(e.x - gr.x) < 10 && gr.y > e.y - 36 && gr.y < e.y) || inBoss(g, gr.x, gr.y));
+    const p = g.player;
+    const hitPlayer = gr.from === 'e' && gr.kind && !p.dead && Math.abs(p.x - gr.x) < 10 && gr.y > p.y - 34 && gr.y < p.y;
+    if (gr.y >= gy || hitEnemy || hitPlayer) {
       gr.y = Math.min(gr.y, gy);
       if (gr.from === 'p' && gr.bounces === 0 && !hitEnemy) { gr.bounces = 1; gr.vy = -1.6; gr.vx *= 0.6; }
-      else { gr.done = true; explode(g, gr.x, gr.y, gr.from === 'p' ? 32 : 18, gr.from, gr.from === 'p' ? 'fx.boom.grenade' : 'fx.boom.small'); }
+      else { gr.done = true; explode(g, gr.x, gr.y, gr.radius ?? (gr.from === 'p' ? 32 : 18), gr.from, gr.anim ?? (gr.from === 'p' ? 'fx.boom.grenade' : 'fx.boom.small')); }
     }
   }
   g.grenades = g.grenades.filter((gr) => !gr.done);
 
+  if (g.boss) stepBoss(g, g.boss);
   for (const e of g.enemies) stepRebel(g, e);
   g.enemies = g.enemies.filter((e) => !(e.state === 'dead' && e.t > 80) && e.x > g.camX - 120);
 
@@ -291,7 +303,7 @@ function stepActors(g) {
 
   // lock release / mission complete
   if (g.lock && g.lock.engaged && !g.enemies.some(alive) && g.phase === 'playing') {
-    if (g.lock.final) { g.phase = 'complete'; g.phaseT = 0; g.banner = { text: 'MISSION COMPLETE', t: 600 }; g.score += g.pows * 1000; ev(g, 'missionComplete'); }
+    if (g.lock.final) g.transition = 0;
     else { g.banner = { text: 'GO', t: 90 }; ev(g, 'go'); }
     g.lock = null;
   }
@@ -302,6 +314,7 @@ function explode(g, x, y, radius, from, anim) {
   ev(g, 'explode', { big: radius > 24 });
   if (from === 'p') {
     for (const e of g.enemies) if (alive(e) && Math.abs(e.x - x) < radius && Math.abs(e.y - 18 - y) < radius + 18) killEnemy(g, e);
+    if (g.boss && inBoss(g, Math.min(x + radius, Math.max(x - radius, g.boss.x)), y)) hitBoss(g, radius >= 28 ? 6 : 3);
   } else {
     const p = g.player;
     if (!p.dead && p.invuln <= 0 && Math.abs(p.x - x) < radius && Math.abs(p.y - 16 - y) < radius + 16) killPlayer(g);
@@ -387,9 +400,96 @@ function stepPrisoner(g, pw) {
   }
 }
 
+// ---------------------------------------------------------------- boss stage
+// Huge Hermit faces right (toward the ferry). x/y = bottom-centre of its sprite in world pixels.
+export const BOSS_HP = 160;
+const BOSS_BOX = { left: -70, right: 92, top: -200, bottom: -20 };
+const inBoss = (g, x, y) => {
+  const b = g.boss;
+  return !!b && b.state !== 'defeat' && b.state !== 'enter' && x > b.x + BOSS_BOX.left && x < b.x + BOSS_BOX.right && y > b.y + BOSS_BOX.top && y < b.y + BOSS_BOX.bottom;
+};
+
+// Fade out, put Marco on the ferry, fade in. The swap happens at the darkest frame.
+function stepTransition(g) {
+  g.transition++;
+  if (g.transition === 45) enterArena(g);
+  if (g.transition >= 90) g.transition = null;
+}
+
+function enterArena(g) {
+  g.arena = true;
+  g.camX = ARENA.x; g.camY = 0;
+  g.enemies = []; g.bullets = []; g.grenades = []; g.items = []; g.prisoners = []; g.effects = [];
+  const keep = g.player;
+  g.player = { ...newPlayer(ARENA.x + 200), weapon: keep.weapon, ammo: keep.ammo, bombs: keep.bombs, invuln: 0 };
+  g.player.y = groundAt(g.player.x); g.player.grounded = true;
+  g.time = 60; g.timeT = 0;
+  g.boss = { x: ARENA.x - 130, y: 236, hp: BOSS_HP, state: 'enter', t: 0, phase2: false, flash: 0, goal: ARENA.x + 55, volley: 0 };
+  ev(g, 'bossAppear');
+}
+
+function hitBoss(g, dmg) {
+  const b = g.boss;
+  if (!b || b.state === 'defeat' || b.state === 'enter') return;
+  b.hp -= dmg; b.flash = 4;
+  g.score += 10 * dmg;
+  if (b.hp <= 0) { b.state = 'defeat'; b.t = 0; g.grenades = g.grenades.filter((gr) => gr.from === 'p'); g.score += 30000; ev(g, 'bossDie'); }
+}
+
+// Lob a projectile from (x, y) that lands on the deck at tx after `flight` frames.
+function lob(g, kind, x, y, tx, flight, vy) {
+  const ty = groundAt(tx);
+  const a = (2 * (ty - y - vy * flight)) / (flight * flight);
+  g.grenades.push({ id: g.nextId++, from: 'e', kind, x, y, vx: (tx - x) / flight, vy, a, bounces: 1, t: 0,
+    radius: kind === 'shell' ? 26 : 18, anim: kind === 'shell' ? 'fx.boom.grenade' : 'hermit.boom' });
+}
+
+function stepBoss(g, b) {
+  const p = g.player;
+  b.t++;
+  if (b.flash > 0) b.flash--;
+  const next = () => { b.state = 'walk'; b.t = 0; b.goal = ARENA.x + (b.goal > ARENA.x + 55 ? 40 : 70); };
+  switch (b.state) {
+    case 'enter':
+      b.x += 0.8;
+      if (b.x >= b.goal) next();
+      break;
+    case 'walk':
+      if (Math.abs(b.goal - b.x) > 0.5) b.x += Math.sign(b.goal - b.x) * 0.4;
+      if (b.t > 80) {
+        b.t = 0;
+        if (!b.phase2 && b.hp <= BOSS_HP / 2) { b.state = 'deploy'; ev(g, 'bossDeploy'); }
+        else b.state = b.phase2 && b.volley++ % 3 !== 2 ? 'cshoot' : 'shoot';
+      }
+      break;
+    case 'shoot':
+      // the small top cannon spits a fireball up and over onto the deck
+      if (b.t === 30 && !p.dead) { lob(g, 'fireball', b.x + 62, b.y - 186, p.x, 70, -3); ev(g, 'bossShoot'); }
+      if (b.t > 60) next();
+      break;
+    case 'deploy':
+      if (b.t > 72) { b.phase2 = true; next(); }
+      break;
+    case 'cshoot':
+      // the deployed cannon fires a heavy shell that tips over and drops on Marco
+      if (b.t === 24 && !p.dead) { lob(g, 'shell', b.x + 96, b.y - 112, p.x + (g.rand() - 0.5) * 40, 60, -3.6); ev(g, 'bossCannon'); }
+      if (b.t > 60) next();
+      break;
+    case 'defeat':
+      if (b.t % 7 === 0 && b.t < 180) {
+        g.effects.push({ anim: b.t % 14 ? 'fx.boom.medium' : 'fx.boom.grenade', x: b.x - 60 + g.rand() * 140, y: b.y - 30 - g.rand() * 150, t: 0 });
+        ev(g, 'explode', { big: true });
+      }
+      if (b.t > 150) b.y += 0.6; // sinks under the waves
+      if (b.t === 300) { g.phase = 'complete'; g.phaseT = 0; g.banner = { text: 'MISSION COMPLETE', t: 600 }; g.score += g.pows * 1000; ev(g, 'missionComplete'); }
+      break;
+  }
+}
+
 // ---------------------------------------------------------------- camera
 function stepCamera(g) {
   const p = g.player;
+  if (g.arena) { g.camX = ARENA.x; g.camY = 0; return; }
   let target = Math.max(g.camX, p.x - 120);
   if (g.lock) {
     if (g.camX >= g.lock.x) g.lock.engaged = true;
@@ -402,4 +502,4 @@ function stepCamera(g) {
 }
 
 // Exposed for tests
-export const _internal = { killPlayer, killEnemy, explode, collect, freePrisoner };
+export const _internal = { killPlayer, killEnemy, explode, collect, freePrisoner, enterArena, hitBoss };

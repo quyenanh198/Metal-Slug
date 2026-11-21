@@ -1,6 +1,6 @@
 // Draws the game state onto the 304x224 arcade canvas.
 import { drawAnim, drawFrame, drawText, frameAt, textWidth } from './assets.js';
-import { GROUND_BASE, PIECES, SCREEN_H, SCREEN_W, groundAt, pieceTop } from './level.js';
+import { ARENA, GROUND_BASE, PIECES, SCREEN_H, SCREEN_W, groundAt, pieceTop } from './level.js';
 import { FPS, WEAPONS } from './game.js';
 
 const sec = (frames) => frames / FPS;
@@ -11,6 +11,23 @@ export function render(ctx, assets, g, debug = false) {
   const camX = Math.round(g.camX), camY = Math.round(g.camY);
   ctx.imageSmoothingEnabled = false;
 
+  if (g.arena) drawArena(ctx, assets, g, camX, camY);
+  else drawMission(ctx, assets, g, camX, camY);
+  if (debug) {
+    ctx.strokeStyle = '#ff0';
+    ctx.beginPath();
+    for (let x = 0; x <= SCREEN_W; x += 2) ctx.lineTo(x, groundAt(camX + x) - camY);
+    ctx.stroke();
+  }
+  drawActors(ctx, assets, g, camX, camY);
+  drawHud(ctx, assets, g);
+  if (g.transition !== null && g.transition !== undefined) {
+    ctx.fillStyle = `rgba(0,0,0,${Math.min(1, 1 - Math.abs(g.transition - 45) / 40)})`;
+    ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+  }
+}
+
+function drawMission(ctx, assets, g, camX, camY) {
   // sky
   const sky = ctx.createLinearGradient(0, 0, 0, SCREEN_H);
   sky.addColorStop(0, '#2f6d9c');
@@ -34,13 +51,33 @@ export function render(ctx, assets, g, debug = false) {
     if (sx > SCREEN_W || sx + piece.w < 0) continue;
     ctx.drawImage(assets.layers[piece.layer], sx, pieceTop(piece) - camY);
   }
-  if (debug) {
-    ctx.strokeStyle = '#ff0';
-    ctx.beginPath();
-    for (let x = 0; x <= SCREEN_W; x += 2) ctx.lineTo(x, groundAt(camX + x) - camY);
-    ctx.stroke();
-  }
+}
 
+// Boss stage: sunset sea scrolling past (the ferry is under way), Huge Hermit wading behind, the ferry in front.
+function drawArena(ctx, assets, g, camX, camY) {
+  const sea = assets.layers['m1.sunset'];
+  const top = SCREEN_H - sea.height;
+  const off = Math.floor(g.frame * 0.6) % sea.width;
+  for (let x = -off; x < SCREEN_W; x += sea.width) {
+    ctx.drawImage(sea, 0, 0, sea.width, 1, x, 0, sea.width, top); // stretch the horizon row up as sky
+    ctx.drawImage(sea, x, top);
+  }
+  const b = g.boss;
+  if (b) {
+    const name = { enter: 'hermit.move', walk: b.phase2 ? 'hermit.cmove' : 'hermit.move', shoot: 'hermit.shoot', deploy: 'hermit.deploy', cshoot: 'hermit.cshoot', defeat: 'hermit.defeat' }[b.state];
+    const t = b.state === 'walk' || b.state === 'enter' || b.state === 'defeat' ? g.frame : b.t;
+    if (b.flash > 0) ctx.filter = 'brightness(1.9)';
+    drawAnim(ctx, assets, name, sec(t), Math.round(b.x - camX), Math.round(b.y - camY));
+    ctx.filter = 'none';
+    drawAnim(ctx, assets, 'hermit.waves', sec(g.frame), Math.round(b.x - camX + 10), SCREEN_H + 4);
+  }
+  // the ferry gets wrecked during the fight; once the boss falls only the SV-001 crate is left on deck
+  const ferry = !b || b.state === 'defeat' ? (b ? 'ferry.wreck' : 'ferry') : b.phase2 ? 'ferry.damaged' : 'ferry';
+  const f0 = assets.anims[ferry].frames[0];
+  drawAnim(ctx, assets, ferry, sec(g.frame), ARENA.ferryX + Math.round(f0.w / 2), ARENA.ferryTop + f0.h - camY);
+}
+
+function drawActors(ctx, assets, g, camX, camY) {
   const at = (x, y) => [x - camX, y - camY];
 
   // items
@@ -76,14 +113,18 @@ export function render(ctx, assets, g, debug = false) {
   }
   for (const gr of g.grenades) {
     const [x, y] = at(gr.x, gr.y);
-    if (gr.from === 'e') drawAnim(ctx, assets, 'rebel.stickgrenade', sec(gr.t), x, y, gr.vx > 0);
+    if (gr.kind === 'fireball') drawAnim(ctx, assets, 'hermit.fireball', sec(gr.t), x, y);
+    else if (gr.kind === 'shell') {
+      // ten frames turn the shell from flying level to nose-down as it falls
+      const fr = assets.anims['hermit.shell'].frames;
+      const k = Math.max(0, Math.min(fr.length - 1, Math.round((Math.atan2(gr.vy, Math.abs(gr.vx)) / (Math.PI / 2)) * (fr.length - 1))));
+      drawFrame(ctx, assets, 'hermit.shell', k, x, y);
+    } else if (gr.from === 'e') drawAnim(ctx, assets, 'rebel.stickgrenade', sec(gr.t), x, y, gr.vx > 0);
     else drawPineapple(ctx, Math.round(x), Math.round(y), gr.t);
   }
 
   // effects (explosions are anchored at their base)
   for (const fx of g.effects) drawAnim(ctx, assets, fx.anim, sec(fx.t), ...at(fx.x, fx.y));
-
-  drawHud(ctx, assets, g);
 }
 
 function drawPlayer(ctx, assets, g, at) {

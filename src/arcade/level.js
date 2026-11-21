@@ -27,8 +27,24 @@ export const LEVEL_START = 300;
 export const pieceTop = (p) => GROUND_BASE - p.h + (p.dy ?? 0);
 export const pieceAt = (x) => PIECES.find((q) => x >= q.x && x < q.x + q.w) ?? (x < 0 ? PIECES[0] : PIECES[PIECES.length - 1]);
 
+// Boss stage: a single fixed screen at world x ARENA.x (camera y 0), Marco on the Slug Transport Ferry while
+// Huge Hermit wades after it from the left. Ferry frame is 210x100; `deck` is its walkable top (local x, local y).
+export const ARENA = {
+  x: 5400,
+  ferryX: 94, ferryTop: 124,
+  deck: [[24, 73], [150, 73], [180, 64], [200, 58]],
+  minX: 142, maxX: 290 // walkable screen x range on the deck (left of 142 is the crane)
+};
+const deckAt = (lx) => {
+  const d = ARENA.deck;
+  if (lx <= d[0][0]) return d[0][1];
+  for (let i = 1; i < d.length; i++) if (lx <= d[i][0]) return d[i - 1][1] + ((d[i][1] - d[i - 1][1]) * (lx - d[i - 1][0])) / (d[i][0] - d[i - 1][0]);
+  return d[d.length - 1][1];
+};
+
 // Walkable world y at world x (larger y = lower on screen).
 export function groundAt(x) {
+  if (x >= ARENA.x - 200) return ARENA.ferryTop + deckAt(x - ARENA.x - ARENA.ferryX);
   const p = pieceAt(x);
   const lx = Math.max(0, Math.min(p.w, x - p.x));
   const top = pieceTop(p);
