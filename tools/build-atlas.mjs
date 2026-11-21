@@ -21,6 +21,16 @@ const sheet = (name) => {
 };
 const only = process.argv[2];
 
+const pixel = (png, x, y) => { const i = (y * png.width + x) * 4; return [png.data[i], png.data[i + 1], png.data[i + 2]]; };
+function trimX(png, b, bgs) {
+  const isBg = (p) => bgs.some((k) => Math.abs(p[0] - k[0]) < 8 && Math.abs(p[1] - k[1]) < 8 && Math.abs(p[2] - k[2]) < 8);
+  const solid = (x) => { for (let y = b.y; y < b.y + b.h; y++) if (!isBg(pixel(png, x, y))) return true; return false; };
+  let x0 = b.x, x1 = b.x + b.w - 1;
+  while (x0 < x1 && !solid(x0)) x0++;
+  while (x1 > x0 && !solid(x1)) x1--;
+  return { x: x0, y: b.y, w: x1 - x0 + 1, h: b.h };
+}
+
 // Collect frames. Entries with `out` are big scenery layers written as their own PNG (bg made transparent).
 const anims = {};
 const layers = {};
@@ -58,7 +68,13 @@ for (const a of ANIMS) {
   if (a.pick) boxes = a.pick.map((i) => boxes[i]).filter(Boolean);
   if (!boxes.length) throw new Error(`no frames for ${a.name}`);
   anims[a.name] = { fps: a.fps ?? 12, loop: a.loop ?? true, frames: [] };
-  for (const b of boxes) crops.push({ anim: a.name, png, b, bg: a.keepBg ? null : bg, anchor: a.anchor ?? 'bottom' });
+  for (let b of boxes) {
+    // cellBg: every rect sits on its own coloured cell, so its background is the rect's top-left pixel
+    const cbg = a.cellBg ? pixel(png, b.x, b.y) : bg;
+    // trimX: crop the empty columns either side (glyphs keep their cell height so baselines line up)
+    if (a.trimX) b = trimX(png, b, [cbg, ...(a.extraBg ?? [])]);
+    crops.push({ anim: a.name, png, b, bg: a.keepBg ? null : cbg, extraBg: a.extraBg ?? [], flood: !!a.flood, anchor: a.anchor ?? 'bottom' });
+  }
 }
 
 // Shelf-pack into a 2048-wide atlas with 1px padding (tallest first packs tighter)
@@ -71,10 +87,22 @@ for (const c of order) {
 }
 const H = cy + shelf + 1;
 const atlas = new PNG({ width: W, height: H });
+// flood: only background connected to the rect's border is dropped (keeps same-coloured highlights inside)
+function outsideMask(c) {
+  const { png, b, bg } = c, m = new Uint8Array(b.w * b.h), q = [];
+  const isBgAt = (x, y) => { const [r, g, bl] = pixel(png, b.x + x, b.y + y); return Math.abs(r - bg[0]) < 8 && Math.abs(g - bg[1]) < 8 && Math.abs(bl - bg[2]) < 8; };
+  const push = (x, y) => { if (x < 0 || y < 0 || x >= b.w || y >= b.h || m[y * b.w + x] || !isBgAt(x, y)) return; m[y * b.w + x] = 1; q.push([x, y]); };
+  for (let x = 0; x < b.w; x++) { push(x, 0); push(x, b.h - 1); }
+  for (let y = 0; y < b.h; y++) { push(0, y); push(b.w - 1, y); }
+  while (q.length) { const [x, y] = q.pop(); push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1); }
+  return m;
+}
 for (const c of crops) {
+  const mask = c.flood ? outsideMask(c) : null;
   for (let y = 0; y < c.b.h; y++) for (let x = 0; x < c.b.w; x++) {
     const si = ((c.b.y + y) * c.png.width + c.b.x + x) * 4, di = ((c.ay + y) * W + c.ax + x) * 4, d = c.png.data;
-    const isBg = c.bg && Math.abs(d[si] - c.bg[0]) < 8 && Math.abs(d[si + 1] - c.bg[1]) < 8 && Math.abs(d[si + 2] - c.bg[2]) < 8;
+    const near = (k) => Math.abs(d[si] - k[0]) < 8 && Math.abs(d[si + 1] - k[1]) < 8 && Math.abs(d[si + 2] - k[2]) < 8;
+    const isBg = mask ? mask[y * c.b.w + x] : c.bg && (near(c.bg) || c.extraBg.some(near)); // extraBg: more colours to drop (e.g. white cell gaps)
     if (isBg || d[si + 3] < 16) continue;
     atlas.data[di] = d[si]; atlas.data[di + 1] = d[si + 1]; atlas.data[di + 2] = d[si + 2]; atlas.data[di + 3] = 255;
   }

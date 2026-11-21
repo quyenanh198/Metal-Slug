@@ -11,6 +11,7 @@ const WSFX = 'Weapon SFX [20654].png';
 const HUD = 'HUD & Interface [29721].png';
 const M1 = 'Mission 1 [37874].png';
 const HERMIT = 'Huge Hermit [99310].png';
+const TITLE = 'Title Screen [551053].png';
 
 export const ANIMS = [
   // Marco, handgun set. Upper body and legs are separate sprites, drawn on top of each other like the arcade.
@@ -79,6 +80,42 @@ export const ANIMS = [
     ],
     anchor: 'topleft'
   },
+
+  // Big "MISSION START!" font: A-Z, 1-9, ! and ?, each glyph on its own pink/green 32x32 cell (I, 1, ! are 16 wide)
+  {
+    name: 'font.big',
+    sheet: HUD,
+    cellBg: true,
+    extraBg: [[255, 255, 255]],
+    trimX: true,
+    rects: [
+      ...[3, 37, 71, 105, 139, 173, 207, 241].map((x) => [x, 3, 32, 32]), [275, 3, 16, 32],
+      ...[293, 327, 361, 395, 429, 463, 497].map((x) => [x, 3, 32, 32]),
+      ...Array.from({ length: 10 }, (_, k) => [3 + 34 * k, 37, 32, 32]),
+      [3, 71, 16, 32], ...Array.from({ length: 8 }, (_, k) => [21 + 34 * k, 71, 32, 32]), [293, 71, 16, 32], [311, 71, 32, 32]
+    ],
+    anchor: 'topleft'
+  },
+  // CONTINUE? countdown digits 1-9 then 0
+  {
+    name: 'font.continue',
+    sheet: HUD,
+    bg: [255, 255, 255],
+    flood: true,
+    trimX: true,
+    rects: [[3, 106, 21, 48], ...[27, 74, 121, 168, 215].map((x) => [x, 106, 44, 48]), [262, 106, 43, 48], ...[308, 355, 402].map((x) => [x, 106, 44, 48])],
+    anchor: 'topleft'
+  },
+  // "GO!" sign: letters pop in, then the arrow sweeps right
+  { name: 'sign.go', sheet: HUD, cellBg: true, rects: Array.from({ length: 16 }, (_, k) => [3 + 33 * k, 169, 32, 31]), fps: 16, anchor: 'topleft' },
+
+  // Title screen pieces: METAL SLUG logo, the chrome "3" held by two claws, blue glow (drawn additively)
+  { name: 'title.logo', sheet: TITLE, rects: [[283, 4, 210, 104]], bg: [0, 0, 0], flood: true, fps: 1, anchor: 'topleft' },
+  { name: 'title.three', sheet: TITLE, rects: [[516, 8, 60, 106]], bg: [0, 0, 0], flood: true, fps: 1, anchor: 'topleft' },
+  { name: 'title.claw.l', sheet: TITLE, rects: [[4, 4, 82, 130]], bg: [0, 0, 0], flood: true, fps: 1, anchor: 'topleft' },
+  { name: 'title.claw.r', sheet: TITLE, rects: [[198, 4, 81, 130]], bg: [0, 0, 0], flood: true, fps: 1, anchor: 'topleft' },
+  { name: 'title.streak', sheet: TITLE, rects: [[18, 138, 249, 35]], bg: [0, 0, 0], flood: true, fps: 1, anchor: 'topleft' },
+  { name: 'title.glow', sheet: TITLE, rects: [[299, 194, 271, 152]], keepBg: true, fps: 1, anchor: 'topleft' },
 
   // Mission 1 scenery (separate images): far sky/sea panorama, animated sea band, and three ground pieces
   { name: 'm1.far', sheet: M1, region: [0, 0, 1745, 274], out: 'm1_far.png' },
