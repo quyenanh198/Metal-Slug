@@ -31,9 +31,13 @@ npm run dev      # http://localhost:5174 (also reachable on the LAN)
 - Rebel soldiers idle or chat until they spot Marco, panic, then rush in with a knife or lob stick grenades;
   they die with the shot or knife-cut death animations.
 - P.O.W.s are freed by touch or gunfire, walk over, hand over an item, salute and run off.
-- The camera only scrolls forward, stops at enemy waves until they are cleared ("GO"), and the last wave ends the
-  mission with the victory pose and the P.O.W. bonus.
-- Scenery: Mission 1 beach, wrecked ship and swamp bridge, jungle; far panorama with parallax and the animated sea.
+- The camera only scrolls forward and stops at enemy waves until they are cleared ("GO").
+- Boss: after the last jungle wave Marco rides the Slug Transport Ferry across the sunset sea while Huge Hermit wades
+  after it. It lobs fireballs from its top cannon; at half health it deploys the big cannon and drops heavy shells,
+  and the ferry gets wrecked down to the SV-001 crate. Destroying it ends the mission (victory pose, P.O.W. bonus).
+- Every bullet stops at the first enemy it hits (no piercing); the handgun has unlimited ammo.
+- Scenery: Mission 1 beach, wrecked ship and swamp bridge, jungle; far panorama with parallax and the animated sea;
+  the boss fight on the scrolling sunset sea.
 
 ## Layout
 
@@ -50,4 +54,4 @@ npm run dev      # http://localhost:5174 (also reachable on the LAN)
 npm test
 ```
 
-Includes a bot run that clears every wave and completes Mission 1.
+Includes a bot run that clears every wave, destroys Huge Hermit and completes Mission 1.

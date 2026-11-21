@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, spawnRebel, startGame, step, _internal } from '../src/arcade/game.js';
-import { groundAt, LEVEL_END, PIECES, SCRIPT } from '../src/arcade/level.js';
+import { BOSS_HP, createGame, spawnRebel, startGame, step, _internal } from '../src/arcade/game.js';
+import { ARENA, groundAt, LEVEL_END, PIECES, SCRIPT } from '../src/arcade/level.js';
 
 const run = (g, input, frames) => { const seen = []; for (let i = 0; i < frames; i++) { step(g, typeof input === 'function' ? input(i) : input); seen.push(...g.events.map((e) => e.name)); } return seen; };
 const playing = () => { const g = createGame(3); startGame(g); g.scriptIndex = SCRIPT.length; run(g, {}, 130); return g; };
@@ -40,6 +40,16 @@ test('the handgun shoots once per press; the heavy machine gun fires while held 
   run(g, { shoot: true }, 40);
   assert.equal(g.player.weapon, 'P');
   assert.equal(g.player.ammo, Infinity);
+});
+
+test('a handgun bullet is not piercing: it kills only the first rebel in its path', () => {
+  const g = playing();
+  // spawned far-to-near so array order differs from distance order
+  const row = [72, 66, 60].map((dx) => spawnRebel(g, g.player.x + dx, 'idle'));
+  row.forEach((e) => { e.state = 'throw'; e.t = -500; });
+  run(g, (i) => ({ shoot: i === 0 }), 30);
+  assert.deepEqual(row.map((e) => e.state === 'dead'), [false, false, true]);
+  assert.equal(g.player.ammo, Infinity, 'the handgun never runs out');
 });
 
 test('shooting a rebel next to you uses the knife, as in the arcade', () => {
@@ -116,6 +126,49 @@ test('losing the last life offers a CONTINUE countdown, then GAME OVER', () => {
   assert.equal(g.phase, 'gameover');
 });
 
+const onFerry = () => { const g = playing(); _internal.enterArena(g); return g; };
+const bossReady = (g) => { while (g.boss.state === 'enter') step(g, {}); };
+
+test('clearing the last jungle wave fades to the ferry, where Huge Hermit wades in from the left', () => {
+  const g = playing();
+  g.lock = { x: g.camX, final: true, engaged: true };
+  const seen = run(g, {}, 100);
+  assert.ok(seen.includes('bossAppear'));
+  assert.equal(g.arena, true);
+  assert.equal(g.camX, ARENA.x);
+  assert.equal(g.player.y, groundAt(g.player.x), 'Marco stands on the ferry deck');
+  assert.ok(g.boss.x < g.player.x, 'the boss is behind (left of) the ferry');
+  run(g, { right: true }, 300);
+  assert.ok(g.player.x <= ARENA.x + ARENA.maxX, 'Marco cannot walk off the ferry');
+});
+
+test('Huge Hermit lobs fireballs onto the deck that kill Marco if he stands still', () => {
+  const g = onFerry();
+  bossReady(g);
+  const seen = run(g, {}, 400);
+  assert.ok(seen.includes('bossShoot'));
+  assert.ok(seen.includes('playerDie'));
+});
+
+test('at half health Huge Hermit deploys its cannon and fires heavy shells', () => {
+  const g = onFerry();
+  bossReady(g);
+  g.player.invuln = 1e9;
+  _internal.hitBoss(g, BOSS_HP / 2);
+  const seen = run(g, {}, 600);
+  assert.ok(seen.includes('bossDeploy'));
+  assert.ok(g.boss.phase2);
+  assert.ok(seen.includes('bossCannon'));
+});
+
+test('handgun shots aimed left damage the boss; each bullet counts once', () => {
+  const g = onFerry();
+  bossReady(g);
+  g.player.invuln = 1e9;
+  run(g, (i) => ({ left: true, shoot: i % 2 === 0 }), 120);
+  assert.ok(g.boss.hp < BOSS_HP && g.boss.hp >= BOSS_HP - 60, `boss hp ${g.boss.hp}`);
+});
+
 test('a bot that cannot die clears every screen lock and completes Mission 1', () => {
   const g = createGame(11);
   startGame(g);
@@ -125,12 +178,13 @@ test('a bot that cannot die clears every screen lock and completes Mission 1', (
     g.player.invuln = 99; g.time = 60;
     const p = g.player;
     const foe = g.enemies.filter((e) => e.state !== 'dead' && e.x > g.camX && e.x < g.camX + 304).sort((a, b) => Math.abs(a.x - p.x) - Math.abs(b.x - p.x))[0];
-    const left = foe ? foe.x < p.x - 4 : false;
+    const left = g.boss ? true : foe ? foe.x < p.x - 4 : false;
     step(g, { left, right: !left, shoot: i % 6 === 0, jump: i % 90 === 0, bomb: i % 400 === 0 });
     seen.push(...g.events.map((e) => e.name));
   }
   assert.equal(g.phase, 'complete');
   assert.ok(seen.includes('go'), 'a GO! sign appeared after a cleared lock');
+  assert.ok(seen.includes('bossDie'), 'Huge Hermit was destroyed');
   assert.ok(seen.includes('missionComplete'));
   assert.ok(g.pows >= 5, `rescued ${g.pows} P.O.W.s`);
 });

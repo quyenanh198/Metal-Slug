@@ -47,6 +47,11 @@ class ArcadeAudio {
     else if (ev === 'throw' || ev === 'enemyThrow') this._tone(420, 0.1, 'sine', 0.08, 640);
     else if (ev === 'explode') this._tone(110, 0.32, 'sawtooth', 0.18, 32);
     else if (ev === 'jump') this._tone(260, 0.08, 'triangle', 0.06, 520);
+    else if (ev === 'bossShoot') this._tone(200, 0.25, 'sawtooth', 0.12, 520);
+    else if (ev === 'bossCannon') this._tone(70, 0.4, 'sawtooth', 0.2, 30);
+    else if (ev === 'bossDeploy') [140, 120, 100].forEach((f, i) => setTimeout(() => this._tone(f, 0.18, 'square', 0.1), i * 160));
+    else if (ev === 'bossAppear') [196, 185, 196, 233].forEach((f, i) => setTimeout(() => this._tone(f, 0.2, 'square', 0.1), i * 220));
+    else if (ev === 'bossDie') [262, 196, 131, 98].forEach((f, i) => setTimeout(() => this._tone(f, 0.3, 'sawtooth', 0.14, f / 2), i * 200));
     else if (ev === 'enemyDie') this._tone(520, 0.18, 'square', 0.06, 160);
     else if (ev === 'playerDie') [392, 330, 262, 196].forEach((f, i) => setTimeout(() => this._tone(f, 0.16, 'square', 0.1), i * 120));
     else if (ev === 'pickup' || ev === 'powFree') {
