@@ -12,6 +12,8 @@ const HUD = 'HUD & Interface [29721].png';
 const M1 = 'Mission 1 [37874].png';
 const HERMIT = 'Huge Hermit [99310].png';
 const TITLE = 'Title Screen [551053].png';
+const CRAB = 'Chowmein Conga [153630].png';
+const CRAB_BG = [[8, 16, 0], [24, 24, 0], [0, 0, 0], [128, 72, 0], [179, 160, 106], [160, 152, 104], [176, 144, 96], [115, 123, 24], [64, 64, 32], [255, 255, 255]];
 
 export const ANIMS = [
   // Marco, handgun set. Upper body and legs are separate sprites, drawn on top of each other like the arcade.
@@ -80,6 +82,17 @@ export const ANIMS = [
     ],
     anchor: 'topleft'
   },
+
+  // Chowmein Conga (small crab, sheet faces left). Each row sits on its own coloured cells, so frames are exact
+  // rects and the background is flood-filled from the frame edge over any of the cell colours.
+  ...[
+    ['crab.idle', [[20, 27, 46, 45], [82, 27, 50, 45], [147, 27, 50, 45], [211, 28, 52, 44], [279, 28, 53, 44], [347, 28, 53, 44], [415, 27, 50, 44]], 8, true],
+    ['crab.walk', [[20, 90, 46, 44], [82, 90, 48, 45], [150, 90, 49, 45], [210, 91, 49, 44], [275, 91, 48, 44], [349, 91, 51, 44], [415, 91, 50, 44]], 12, true],
+    ['crab.attack', [[23, 295, 48, 44], [87, 295, 45, 44], [148, 287, 40, 52], [204, 289, 43, 50], [253, 293, 54, 46], [317, 295, 62, 44], [394, 295, 75, 44], [480, 294, 75, 45]], 14, false],
+    ['crab.death', [[27, 892, 54, 43], [94, 893, 52, 42], [161, 894, 53, 41], [232, 892, 56, 43], [306, 887, 63, 48], [383, 884, 65, 51], [471, 889, 64, 46],
+      [30, 959, 66, 47], [112, 963, 59, 43], [196, 963, 64, 43], [272, 955, 68, 51], [354, 954, 68, 52], [443, 951, 68, 55],
+      [26, 1017, 68, 54], [103, 1019, 68, 52], [190, 1017, 68, 54], [278, 1024, 68, 47], [351, 1028, 68, 43], [439, 1030, 66, 41], [523, 1050, 62, 21]], 14, false]
+  ].map(([name, rects, fps, loop]) => ({ name, sheet: CRAB, rects, fps, loop, flood: true, bg: [112, 24, 0], extraBg: CRAB_BG })),
 
   // Big "MISSION START!" font: A-Z, 1-9, ! and ?, each glyph on its own pink/green 32x32 cell (I, 1, ! are 16 wide)
   {

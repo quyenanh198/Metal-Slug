@@ -14,11 +14,12 @@ Chơi được trọn Mission 1 từ đầu đến cuối:
 | Luật | Trúng 1 phát là chết, 2 mạng, TIME 60, CONTINUE, GAME OVER. Đạn không xuyên; súng lục vô hạn. |
 | Vũ khí | P (súng lục), H, R, S lấy từ POW; hết đạn thì quay về P. Tự chuyển sang dao khi đứng sát địch. 10 lựu đạn. |
 | Lính Rebel | Đứng / tán gẫu → giật mình → lao vào chém hoặc ném lựu đạn cán dài. Có hai kiểu chết (bị bắn, bị chém). |
+| Cua | Chowmein Conga (6 máu) ở bãi biển và xác tàu: bò tới Marco, vung càng tạo lốc cát (trúng là chết), chết tan chảy. Súng lục trừ 1, dao/shotgun trừ 3, lựu đạn/rocket trừ 4. |
 | POW | Cởi trói → đi tới → đưa vật phẩm → chào → chạy đi. |
 | Màn chơi | Bãi biển → xác tàu → cầu đầm lầy → rừng. Camera chỉ tiến lên, dừng ở đợt địch rồi hiện biển "GO!". |
 | Chữ trên màn hình | Màn tiêu đề ghép từ logo gốc (METAL SLUG, số 3 trong móng vuốt). "MISSION 1 START!", "MISSION 1 COMPLETE!", "GAME OVER", "CONTINUE?" dùng font lớn gốc, hiện từng chữ. Số đếm CONTINUE màu bạc gốc. Biển "GO!" có mũi tên chuyển động. |
 | Boss | Huge Hermit trên biển hoàng hôn, Marco đứng trên phà Slug Transport Ferry. Giai đoạn 1 cầu lửa, giai đoạn 2 (còn nửa máu) bung pháo lớn, phà bị phá dần tới khi còn thùng SV-001. Hạ boss là MISSION COMPLETE. |
-| Test | 17 test (`npm test`), có bot bất tử chơi hết màn và hạ boss. |
+| Test | 20 test (`npm test`), có bot bất tử chơi hết màn và hạ boss. |
 
 ## 2. Chạy và kiểm tra
 
@@ -78,18 +79,18 @@ Lock `final` → chuyển cảnh (`g.transition`) → `enterArena` → boss → 
 
 ## 6. Lộ trình (theo thứ tự ưu tiên)
 
-Đã xong: biển chữ và màn tiêu đề gốc (bước 1 cũ).
+Đã xong: biển chữ và màn tiêu đề gốc; cua Chowmein Conga.
 
-1. **Cua (Chowmein Conga / Ohumein Conga).** Cắt sprite từ hai sheet cùng tên. Thêm loại địch: bò ngang, phun bọt, chịu được vài phát đạn. Đặt ở đoạn bãi biển và xác tàu trong `SCRIPT`. Kèm test.
-2. **Xe Metal Slug (SV-001).**
+1. **Xe Metal Slug (SV-001).**
    - Sprite lấy từ `Metal Slug [32523].png`.
    - Cho Marco lên xe ở đoạn rừng: pháo chính bắn theo hướng ngắm, súng máy vulcan, nhảy, thanh máu xe, và nhảy ra khỏi xe.
    - Đây là phần lớn nhất. Nên tách thành module riêng `src/arcade/slug.js`.
-3. **Hoàn thiện boss.**
+2. **Hoàn thiện boss.**
    - Thêm hiệu ứng nước bắn (`SPLASH SFX` trên sheet Huge Hermit) khi đạn pháo rơi xuống biển.
    - Thêm khói và đạn rơi vỏ.
    - Chỉnh nhịp tấn công theo video arcade.
-4. **Đo lại mặt đất và kịch bản.** Đối chiếu với video longplay MS3 Mission 1: vị trí lock, số lính, vị trí POW và đường đi trên xác tàu.
+3. **Đo lại mặt đất và kịch bản.** Đối chiếu với video longplay MS3 Mission 1: vị trí lock, số lính, vị trí POW và đường đi trên xác tàu.
+4. **Cua lớn Ohumein Conga** (sheet cùng tên, 1455×1902) làm mini-boss; thêm đòn phun bọt của Chowmein Conga.
 5. **Nén atlas.** Lượng tử hoá palette khi build, hoặc tách atlas boss ra file riêng và chỉ nạp khi vào sân boss.
 6. **Âm thanh.** Nếu có file âm thanh gốc (local), thêm bộ nạp theo tên sự kiện và giữ âm tổng hợp làm dự phòng.
 7. **Mở rộng.**
