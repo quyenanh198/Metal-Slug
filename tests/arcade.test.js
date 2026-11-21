@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BOSS_HP, createGame, spawnRebel, startGame, step, _internal } from '../src/arcade/game.js';
+import { BOSS_HP, CRAB_HP, createGame, spawnCrab, spawnRebel, startGame, step, _internal } from '../src/arcade/game.js';
 import { ARENA, groundAt, LEVEL_END, PIECES, SCRIPT } from '../src/arcade/level.js';
 
 const run = (g, input, frames) => { const seen = []; for (let i = 0; i < frames; i++) { step(g, typeof input === 'function' ? input(i) : input); seen.push(...g.events.map((e) => e.name)); } return seen; };
@@ -124,6 +124,34 @@ test('losing the last life offers a CONTINUE countdown, then GAME OVER', () => {
   assert.equal(g.phase, 'continue');
   run(g, {}, 10 * 60 + 2);
   assert.equal(g.phase, 'gameover');
+});
+
+test('a Chowmein Conga crab takes several handgun bullets, then melts with its own death animation', () => {
+  const g = playing();
+  g.player.invuln = 1e9;
+  const c = spawnCrab(g, g.player.x + 110);
+  run(g, (i) => ({ shoot: i % 8 === 0 && i < 8 * (CRAB_HP - 1) }), 8 * (CRAB_HP - 1));
+  run(g, {}, 20);
+  assert.equal(c.state !== 'dead', true, 'still alive one bullet short');
+  const seen = run(g, (i) => ({ shoot: i === 0 }), 20);
+  assert.ok(seen.includes('enemyDie'));
+  assert.equal(c.deathAnim, 'crab.death');
+});
+
+test('a crab crawls up to Marco and its claw swipe kills him', () => {
+  const g = playing();
+  g.player.invuln = 0;
+  spawnCrab(g, g.player.x + 120);
+  const seen = run(g, {}, 400);
+  assert.ok(seen.includes('crabSwipe'));
+  assert.ok(seen.includes('playerDie'));
+});
+
+test('the knife takes half a crab in one cut', () => {
+  const g = playing();
+  const c = spawnCrab(g, g.player.x + 16);
+  run(g, (i) => ({ shoot: i === 0 }), 2);
+  assert.equal(c.hp, CRAB_HP - 3);
 });
 
 const onFerry = () => { const g = playing(); _internal.enterArena(g); return g; };

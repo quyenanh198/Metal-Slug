@@ -59,9 +59,16 @@ export function groundAt(x) {
 }
 
 // Scripted encounters. `at` = camera left edge that triggers the entry. Kinds:
-//   rebel {mode: 'idle'|'chat'|'grenadier'|'charge', x, facing}, pow {x, drop}, item {x, kind}, lock {x, final?}
+//   rebel {mode: 'idle'|'chat'|'grenadier'|'charge', x, facing}, crab {x, facing?}, pow {x, drop}, item {x, kind},
+//   lock {x, final?}
 export const SCRIPT = [
   { at: 300, type: 'pow', x: 560, drop: 'H' },
+  // Chowmein Conga crabs come out of the surf on the beach and crawl over the wreck
+  { at: 420, type: 'crab', x: 760 },
+  { at: 1100, type: 'crab', x: 1420 },
+  { at: 1100, type: 'crab', x: 1460 },
+  { at: 2300, type: 'crab', x: 2620 },
+  { at: 2300, type: 'crab', x: 2660 },
   { at: 300, type: 'rebel', mode: 'chat', x: 680, facing: -1 },
   { at: 300, type: 'rebel', mode: 'idle', x: 710, facing: -1 },
   { at: 500, type: 'rebel', mode: 'grenadier', x: 860, facing: -1 },

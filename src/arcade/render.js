@@ -94,7 +94,14 @@ function drawActors(ctx, assets, g, camX, camY) {
 
   // rebels (sheet faces left)
   for (const e of g.enemies) {
-    if (e.state === 'dead' && e.t > 50 && Math.floor(e.t / 3) % 2) continue;
+    if (e.state === 'dead' && e.kind !== 'crab' && e.t > 50 && Math.floor(e.t / 3) % 2) continue;
+    if (e.kind === 'crab') {
+      const name = { idle: 'crab.idle', walk: 'crab.walk', attack: 'crab.attack', dead: 'crab.death' }[e.state];
+      if (e.flash > 0) ctx.filter = 'brightness(1.9)';
+      drawAnim(ctx, assets, name, sec(e.t), ...at(e.x, e.y), e.facing > 0);
+      ctx.filter = 'none';
+      continue;
+    }
     const name = { idle: 'rebel.idle', chat: 'rebel.chat', scared: 'rebel.scared', run: 'rebel.run', knife: 'rebel.knife', aim: 'rebel.idle', throw: 'rebel.grenade', dead: e.deathAnim }[e.state];
     drawAnim(ctx, assets, name, sec(e.t), ...at(e.x, e.y), e.facing > 0);
   }

@@ -46,6 +46,8 @@ class ArcadeAudio {
     else if (ev === 'knife') this._tone(900, 0.06, 'triangle', 0.08, 1500);
     else if (ev === 'throw' || ev === 'enemyThrow') this._tone(420, 0.1, 'sine', 0.08, 640);
     else if (ev === 'explode') this._tone(110, 0.32, 'sawtooth', 0.18, 32);
+    else if (ev === 'enemyHit') this._tone(1200, 0.03, 'square', 0.04, 900);
+    else if (ev === 'crabSwipe') this._tone(500, 0.18, 'sawtooth', 0.07, 120);
     else if (ev === 'jump') this._tone(260, 0.08, 'triangle', 0.06, 520);
     else if (ev === 'bossShoot') this._tone(200, 0.25, 'sawtooth', 0.12, 520);
     else if (ev === 'bossCannon') this._tone(70, 0.4, 'sawtooth', 0.2, 30);

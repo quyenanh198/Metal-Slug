@@ -98,6 +98,7 @@ function runScript(g) {
   while (g.scriptIndex < SCRIPT.length && SCRIPT[g.scriptIndex].at <= g.camX) {
     const s = SCRIPT[g.scriptIndex++];
     if (s.type === 'rebel') spawnRebel(g, s.x, s.mode, s.facing);
+    else if (s.type === 'crab') spawnCrab(g, s.x, s.facing ?? -1);
     else if (s.type === 'pow') g.prisoners.push({ id: g.nextId++, x: s.x, y: groundAt(s.x), state: 'tied', t: 0, drop: s.drop, facing: -1 });
     else if (s.type === 'item') spawnItem(g, s.kind, s.x, groundAt(s.x));
     else if (s.type === 'lock') g.lock = { x: s.x, final: !!s.final, engaged: false };
@@ -184,7 +185,7 @@ function attack(g) {
   if (near && !p.aimUp) {
     p.action = 'knife'; p.actionT = 0; p.cooldown = 14;
     near.facing = Math.sign(p.x - near.x) || 1;
-    killEnemy(g, near, 'rebel.death.cut');
+    killEnemy(g, near, 'rebel.death.cut', 3);
     ev(g, 'knife');
     return;
   }
@@ -198,7 +199,7 @@ function attack(g) {
     for (const e of g.enemies) {
       if (!alive(e)) continue;
       const dx = (e.x - m.x) * vx, dy = e.y - 18 - m.y;
-      if ((vx && dx > -4 && dx < 70 && Math.abs(dy) < 30) || (vy && Math.abs(e.x - m.x) < 26 && dy < 0 && dy > -80)) killEnemy(g, e);
+      if ((vx && dx > -4 && dx < 70 && Math.abs(dy) < 30) || (vy && Math.abs(e.x - m.x) < 26 && dy < 0 && dy > -80)) killEnemy(g, e, 'rebel.death', 3);
     }
     const b = g.boss;
     if (b && vx < 0 && m.x - (b.x + BOSS_BOX.right) < 70) hitBoss(g, 4); // the boss is always to the left
@@ -285,8 +286,8 @@ function stepActors(g) {
   g.grenades = g.grenades.filter((gr) => !gr.done);
 
   if (g.boss) stepBoss(g, g.boss);
-  for (const e of g.enemies) stepRebel(g, e);
-  g.enemies = g.enemies.filter((e) => !(e.state === 'dead' && e.t > 80) && e.x > g.camX - 120);
+  for (const e of g.enemies) (e.kind === 'crab' ? stepCrab : stepRebel)(g, e);
+  g.enemies = g.enemies.filter((e) => !(e.state === 'dead' && e.t > (e.kind === 'crab' ? 110 : 80)) && e.x > g.camX - 120);
 
   for (const pw of g.prisoners) stepPrisoner(g, pw);
   g.prisoners = g.prisoners.filter((pw) => !(pw.state === 'run' && pw.x < g.camX - 40) && pw.x > g.camX - 200);
@@ -313,7 +314,7 @@ function explode(g, x, y, radius, from, anim) {
   g.effects.push({ anim, x, y, t: 0 });
   ev(g, 'explode', { big: radius > 24 });
   if (from === 'p') {
-    for (const e of g.enemies) if (alive(e) && Math.abs(e.x - x) < radius && Math.abs(e.y - 18 - y) < radius + 18) killEnemy(g, e);
+    for (const e of g.enemies) if (alive(e) && Math.abs(e.x - x) < radius && Math.abs(e.y - 18 - y) < radius + 18) killEnemy(g, e, 'rebel.death', 4);
     if (g.boss && inBoss(g, Math.min(x + radius, Math.max(x - radius, g.boss.x)), y)) hitBoss(g, radius >= 28 ? 6 : 3);
   } else {
     const p = g.player;
@@ -321,11 +322,54 @@ function explode(g, x, y, radius, from, anim) {
   }
 }
 
-function killEnemy(g, e, anim = 'rebel.death') {
+// dmg only matters for enemies with hit points (crabs); a rebel dies to anything.
+function killEnemy(g, e, anim = 'rebel.death', dmg = 1) {
   if (!alive(e)) return;
+  if (e.hp !== undefined) {
+    e.hp -= dmg; e.flash = 4;
+    if (e.hp > 0) { ev(g, 'enemyHit'); return; }
+    anim = 'crab.death';
+  }
   e.state = 'dead'; e.t = 0; e.deathAnim = anim;
-  g.score += 100;
+  g.score += e.kind === 'crab' ? 300 : 100;
   ev(g, 'enemyDie');
+}
+
+// Chowmein Conga: a crab that scuttles at Marco and swipes a claw that throws up a sand blast.
+export const CRAB_HP = 6;
+export function spawnCrab(g, x, facing = -1) {
+  const e = { id: g.nextId++, kind: 'crab', x, y: groundAt(x), facing, state: 'idle', t: 0, hp: CRAB_HP, flash: 0, cool: 0, deathAnim: 'crab.death' };
+  g.enemies.push(e);
+  return e;
+}
+
+function stepCrab(g, e) {
+  const p = g.player;
+  e.t++;
+  if (e.flash > 0) e.flash--;
+  if (e.state === 'dead') return;
+  e.y = groundAt(e.x);
+  const dx = p.x - e.x, dist = Math.abs(dx);
+  const onScreen = e.x > g.camX - 10 && e.x < g.camX + SCREEN_W + 10;
+  if (e.cool > 0) e.cool--;
+  switch (e.state) {
+    case 'idle':
+      if (onScreen && dist < 220) { e.state = 'walk'; e.t = 0; }
+      break;
+    case 'walk':
+      e.facing = Math.sign(dx) || e.facing;
+      if (dist > 34) e.x += e.facing * 0.55;
+      else if (e.cool <= 0 && !p.dead) { e.state = 'attack'; e.t = 0; }
+      break;
+    case 'attack':
+      // the sand blast leaves the claw on the 7th frame of the 14 fps swipe
+      if (e.t === 26) {
+        ev(g, 'crabSwipe');
+        if (!p.dead && p.invuln <= 0 && dist < 50 && Math.sign(dx) === e.facing && Math.abs(p.y - e.y) < 30) killPlayer(g);
+      }
+      if (e.t > 40) { e.state = 'walk'; e.t = 0; e.cool = 50; }
+      break;
+  }
 }
 
 function stepRebel(g, e) {

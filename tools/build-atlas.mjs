@@ -90,7 +90,8 @@ const atlas = new PNG({ width: W, height: H });
 // flood: only background connected to the rect's border is dropped (keeps same-coloured highlights inside)
 function outsideMask(c) {
   const { png, b, bg } = c, m = new Uint8Array(b.w * b.h), q = [];
-  const isBgAt = (x, y) => { const [r, g, bl] = pixel(png, b.x + x, b.y + y); return Math.abs(r - bg[0]) < 8 && Math.abs(g - bg[1]) < 8 && Math.abs(bl - bg[2]) < 8; };
+  const bgs = [bg, ...c.extraBg];
+  const isBgAt = (x, y) => { const [r, g, bl] = pixel(png, b.x + x, b.y + y); return bgs.some((k) => Math.abs(r - k[0]) < 8 && Math.abs(g - k[1]) < 8 && Math.abs(bl - k[2]) < 8); };
   const push = (x, y) => { if (x < 0 || y < 0 || x >= b.w || y >= b.h || m[y * b.w + x] || !isBgAt(x, y)) return; m[y * b.w + x] = 1; q.push([x, y]); };
   for (let x = 0; x < b.w; x++) { push(x, 0); push(x, b.h - 1); }
   for (let y = 0; y < b.h; y++) { push(0, y); push(b.w - 1, y); }
