@@ -15,7 +15,8 @@ Chơi được trọn Mission 1 từ đầu đến cuối:
 | Vũ khí | P (súng lục), H, R, S lấy từ POW; hết đạn thì quay về P. Tự chuyển sang dao khi đứng sát địch. 10 lựu đạn. |
 | Lính Rebel | Đứng / tán gẫu → giật mình → lao vào chém hoặc ném lựu đạn cán dài. Có hai kiểu chết (bị bắn, bị chém). |
 | POW | Cởi trói → đi tới → đưa vật phẩm → chào → chạy đi. |
-| Màn chơi | Bãi biển → xác tàu → cầu đầm lầy → rừng. Camera chỉ tiến lên, dừng ở đợt địch rồi hiện "GO". |
+| Màn chơi | Bãi biển → xác tàu → cầu đầm lầy → rừng. Camera chỉ tiến lên, dừng ở đợt địch rồi hiện biển "GO!". |
+| Chữ trên màn hình | Màn tiêu đề ghép từ logo gốc (METAL SLUG, số 3 trong móng vuốt). "MISSION 1 START!", "MISSION 1 COMPLETE!", "GAME OVER", "CONTINUE?" dùng font lớn gốc, hiện từng chữ. Số đếm CONTINUE màu bạc gốc. Biển "GO!" có mũi tên chuyển động. |
 | Boss | Huge Hermit trên biển hoàng hôn, Marco đứng trên phà Slug Transport Ferry. Giai đoạn 1 cầu lửa, giai đoạn 2 (còn nửa máu) bung pháo lớn, phà bị phá dần tới khi còn thùng SV-001. Hạ boss là MISSION COMPLETE. |
 | Test | 17 test (`npm test`), có bot bất tử chơi hết màn và hạ boss. |
 
@@ -59,7 +60,7 @@ Lock `final` → chuyển cảnh (`g.transition`) → `enterArena` → boss → 
 - **Sheet gốc:**
   - Mỗi hàng sprite có một dòng chữ nhãn ngay phía trên. `region` phải bắt đầu dưới dòng nhãn đó.
   - Sheet Mission 1 có nền hồng `[248,0,248]`, phải khai báo `bg` rõ ràng.
-- **Manifest:** `sortX` giữ thứ tự khung từ trái sang phải. `pick` chọn khung con. `out` xuất ra layer PNG riêng cho nền lớn.
+- **Manifest:** `cellBg` lấy màu nền theo từng ô; `extraBg` bỏ thêm màu nền khác (vd. trắng); `flood` chỉ xoá nền nối với mép khung (giữ phần sáng cùng màu bên trong); `trimX` cắt cột trống hai bên. `sortX` giữ thứ tự khung từ trái sang phải. `pick` chọn khung con. `out` xuất ra layer PNG riêng cho nền lớn.
 - **Neo khung:** mặc định neo ở đáy-giữa (chân). Dùng `anchor: 'center'` cho đạn và `'topleft'` cho font.
 - **Thay đổi luật chơi:** thêm test trong `tests/arcade.test.js`. Bot ở cuối file phải luôn hoàn thành màn.
 - **Danh tính git:** Quyen Nguyen, email noreply của GitHub (đã cấu hình local trong repo này).
@@ -72,25 +73,26 @@ Lock `final` → chuyển cảnh (`g.transition`) → `enterArena` → boss → 
 - Bầu trời sân boss được kéo giãn từ dòng chân trời của nền, nên hơi có sọc dọc.
 - Shotgun chưa có sprite riêng. Lựu đạn của Marco vẽ bằng code.
 - Âm thanh là tiếng tổng hợp; thư mục không có file âm thanh gốc.
-- Chữ trên màn hình (MISSION START, GO, MISSION COMPLETE) dùng font điểm nhỏ phóng to, chưa dùng biển chữ gốc.
+- Tên vũ khí khi nhặt (HEAVY MACHINE GUN…) vẫn là font điểm phóng to; arcade chỉ đọc bằng giọng.
 - `atlas.png` khoảng 4,6 MB (khung boss lớn). Chưa nén palette.
 
 ## 6. Lộ trình (theo thứ tự ưu tiên)
 
-1. **Biển chữ gốc.** Cắt các chữ "MISSION 1 START!", "GO!", "MISSION COMPLETE!" và mũi tên GO từ `HUD & Interface [29721].png`, thay cho `drawText` phóng to trong `drawHud`. Việc nhỏ, nhưng giúp game nhìn giống bản gốc hơn rõ rệt.
-2. **Cua (Chowmein Conga / Ohumein Conga).** Cắt sprite từ hai sheet cùng tên. Thêm loại địch: bò ngang, phun bọt, chịu được vài phát đạn. Đặt ở đoạn bãi biển và xác tàu trong `SCRIPT`. Kèm test.
-3. **Xe Metal Slug (SV-001).**
+Đã xong: biển chữ và màn tiêu đề gốc (bước 1 cũ).
+
+1. **Cua (Chowmein Conga / Ohumein Conga).** Cắt sprite từ hai sheet cùng tên. Thêm loại địch: bò ngang, phun bọt, chịu được vài phát đạn. Đặt ở đoạn bãi biển và xác tàu trong `SCRIPT`. Kèm test.
+2. **Xe Metal Slug (SV-001).**
    - Sprite lấy từ `Metal Slug [32523].png`.
    - Cho Marco lên xe ở đoạn rừng: pháo chính bắn theo hướng ngắm, súng máy vulcan, nhảy, thanh máu xe, và nhảy ra khỏi xe.
    - Đây là phần lớn nhất. Nên tách thành module riêng `src/arcade/slug.js`.
-4. **Hoàn thiện boss.**
+3. **Hoàn thiện boss.**
    - Thêm hiệu ứng nước bắn (`SPLASH SFX` trên sheet Huge Hermit) khi đạn pháo rơi xuống biển.
    - Thêm khói và đạn rơi vỏ.
    - Chỉnh nhịp tấn công theo video arcade.
-5. **Đo lại mặt đất và kịch bản.** Đối chiếu với video longplay MS3 Mission 1: vị trí lock, số lính, vị trí POW và đường đi trên xác tàu.
-6. **Nén atlas.** Lượng tử hoá palette khi build, hoặc tách atlas boss ra file riêng và chỉ nạp khi vào sân boss.
-7. **Âm thanh.** Nếu có file âm thanh gốc (local), thêm bộ nạp theo tên sự kiện và giữ âm tổng hợp làm dự phòng.
-8. **Mở rộng.**
+4. **Đo lại mặt đất và kịch bản.** Đối chiếu với video longplay MS3 Mission 1: vị trí lock, số lính, vị trí POW và đường đi trên xác tàu.
+5. **Nén atlas.** Lượng tử hoá palette khi build, hoặc tách atlas boss ra file riêng và chỉ nạp khi vào sân boss.
+6. **Âm thanh.** Nếu có file âm thanh gốc (local), thêm bộ nạp theo tên sự kiện và giữ âm tổng hợp làm dự phòng.
+7. **Mở rộng.**
    - Thêm hai nhánh còn lại của Mission 1: nhánh dưới nước và nhánh hang.
    - Sau đó tới Mission 2.
    - Mỗi mission là một bộ `PIECES` + `SCRIPT` + arena riêng. Nên đưa `level.js` sang dạng dữ liệu theo mission trước khi làm.

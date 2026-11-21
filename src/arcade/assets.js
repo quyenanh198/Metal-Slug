@@ -75,3 +75,32 @@ export function textWidth(assets, text, scale = 1) {
   }
   return w;
 }
+
+// Big "MISSION START!" font (A-Z, 1-9, ! ?; zero is drawn with the O). `count` limits how many glyphs show,
+// for the letter-by-letter reveal.
+const BIG = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789!?';
+const bigIndex = (ch) => BIG.indexOf(ch === '0' ? 'O' : ch);
+export function bigWidth(assets, text) {
+  const font = assets.anims['font.big'];
+  let w = 0;
+  for (const ch of String(text).toUpperCase()) { const i = bigIndex(ch); w += i < 0 ? 12 : font.frames[i].w - 2; }
+  return w;
+}
+export function drawBig(ctx, assets, text, x, y, count = Infinity) {
+  const font = assets.anims['font.big'];
+  let cx = Math.round(x), n = 0;
+  for (const ch of String(text).toUpperCase()) {
+    const i = bigIndex(ch);
+    if (i < 0) { cx += 12; continue; }
+    const f = font.frames[i];
+    if (n++ < count) ctx.drawImage(assets.atlas, f.x, f.y, f.w, f.h, cx, Math.round(y), f.w, f.h);
+    cx += f.w - 2; // glyphs carry a 2 px drop shadow that may overlap the next one
+  }
+}
+export const drawBigCentered = (ctx, assets, text, y, count) => drawBig(ctx, assets, text, 152 - bigWidth(assets, text) / 2, y, count);
+
+// Silver CONTINUE countdown digit (0-9).
+export function drawContinueDigit(ctx, assets, d, cx, y) {
+  const f = assets.anims['font.continue'].frames[(d + 9) % 10];
+  ctx.drawImage(assets.atlas, f.x, f.y, f.w, f.h, Math.round(cx - f.w / 2), Math.round(y), f.w, f.h);
+}

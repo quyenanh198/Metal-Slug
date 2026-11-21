@@ -45,7 +45,7 @@ const alive = (e) => e.state !== 'dead';
 
 export function startGame(g) {
   Object.assign(g, createGame(g.seed), { phase: 'playing' });
-  g.banner = { text: 'MISSION 1 START', t: 150 };
+  g.banner = { text: 'MISSION 1 START', t: 180, t0: 180 };
   ev(g, 'missionStart');
 }
 
@@ -223,7 +223,7 @@ function collect(g, it) {
   it.taken = true;
   if ('HRS'.includes(it.kind)) {
     p.weapon = it.kind; p.ammo = WEAPONS[it.kind].ammo;
-    g.banner = { text: WEAPONS[it.kind].name, t: 90 };
+    g.banner = { text: WEAPONS[it.kind].name, t: 90, t0: 90 };
     ev(g, 'weapon', { kind: it.kind });
   } else if (it.kind === 'bombs') { p.bombs += 10; ev(g, 'pickup'); }
   else { g.score += it.kind === 'chicken' ? 1000 : 500; ev(g, 'pickup'); }
@@ -304,7 +304,7 @@ function stepActors(g) {
   // lock release / mission complete
   if (g.lock && g.lock.engaged && !g.enemies.some(alive) && g.phase === 'playing') {
     if (g.lock.final) g.transition = 0;
-    else { g.banner = { text: 'GO', t: 90 }; ev(g, 'go'); }
+    else { g.banner = { text: 'GO', t: 150, t0: 150 }; ev(g, 'go'); }
     g.lock = null;
   }
 }
@@ -481,7 +481,7 @@ function stepBoss(g, b) {
         ev(g, 'explode', { big: true });
       }
       if (b.t > 150) b.y += 0.6; // sinks under the waves
-      if (b.t === 300) { g.phase = 'complete'; g.phaseT = 0; g.banner = { text: 'MISSION COMPLETE', t: 600 }; g.score += g.pows * 1000; ev(g, 'missionComplete'); }
+      if (b.t === 300) { g.phase = 'complete'; g.phaseT = 0; g.banner = { text: 'MISSION COMPLETE', t: 600, t0: 600 }; g.score += g.pows * 1000; ev(g, 'missionComplete'); }
       break;
   }
 }

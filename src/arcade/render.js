@@ -1,5 +1,5 @@
 // Draws the game state onto the 304x224 arcade canvas.
-import { drawAnim, drawFrame, drawText, frameAt, textWidth } from './assets.js';
+import { drawAnim, drawBigCentered, drawContinueDigit, drawFrame, drawText, frameAt, textWidth } from './assets.js';
 import { ARENA, GROUND_BASE, PIECES, SCREEN_H, SCREEN_W, groundAt, pieceTop } from './level.js';
 import { FPS, WEAPONS } from './game.js';
 
@@ -191,29 +191,53 @@ function drawHud(ctx, assets, g) {
     if (WEAPONS[p.weapon] && p.weapon !== 'P') drawText(ctx, assets, p.weapon, 158, 16);
   }
 
-  if (g.banner) {
-    const s = g.banner.text === 'GO' ? 3 : 2;
-    if (g.banner.text !== 'GO' || Math.floor(g.banner.t / 8) % 2) {
-      drawText(ctx, assets, g.banner.text, SCREEN_W / 2 - textWidth(assets, g.banner.text, s) / 2, g.banner.text === 'GO' ? 70 : 84, s);
-    }
-  }
+  if (g.banner) drawBanner(ctx, assets, g.banner);
 
-  if (g.phase === 'title') {
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    ctx.fillRect(0, 60, SCREEN_W, 96);
-    drawText(ctx, assets, 'METAL SLUG 3', SCREEN_W / 2 - textWidth(assets, 'METAL SLUG 3', 3) / 2, 72, 3);
-    drawText(ctx, assets, 'MISSION 1', SCREEN_W / 2 - textWidth(assets, 'MISSION 1', 2) / 2, 106, 2);
-    if (Math.floor(g.frame / 30) % 2) drawText(ctx, assets, 'PRESS START', SCREEN_W / 2 - textWidth(assets, 'PRESS START') / 2, 136);
-  } else if (g.phase === 'continue') {
+  if (g.phase === 'title') drawTitle(ctx, assets, g);
+  else if (g.phase === 'continue') {
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
-    drawText(ctx, assets, 'CONTINUE', SCREEN_W / 2 - textWidth(assets, 'CONTINUE', 2) / 2, 70, 2);
-    const n = String(Math.max(0, Math.ceil(g.continueT / FPS) - 1));
-    drawText(ctx, assets, n, SCREEN_W / 2 - textWidth(assets, n, 5) / 2, 100, 5);
+    drawBigCentered(ctx, assets, 'CONTINUE?', 52);
+    drawContinueDigit(ctx, assets, Math.max(0, Math.ceil(g.continueT / FPS) - 1), SCREEN_W / 2, 98);
   } else if (g.phase === 'gameover') {
-    drawText(ctx, assets, 'GAME OVER', SCREEN_W / 2 - textWidth(assets, 'GAME OVER', 3) / 2, 90, 3);
+    drawBigCentered(ctx, assets, 'GAME OVER', 90, Math.floor(g.phaseT / 4));
   } else if (g.phase === 'complete' && g.phaseT > 90) {
     const line = `POW RESCUED ${g.pows}`;
-    drawText(ctx, assets, line, SCREEN_W / 2 - textWidth(assets, line) / 2, 112);
+    drawText(ctx, assets, line, SCREEN_W / 2 - textWidth(assets, line) / 2, 144);
   }
 }
+
+// Arcade signs: "MISSION 1 / START!" and "MISSION 1 / COMPLETE!" type in letter by letter in the big font,
+// "GO!" is the animated sign at the right edge; weapon names use the points font.
+function drawBanner(ctx, assets, b) {
+  const age = (b.t0 ?? b.t) - b.t;
+  const two = { 'MISSION 1 START': ['MISSION 1', 'START!'], 'MISSION COMPLETE': ['MISSION 1', 'COMPLETE!'] }[b.text];
+  if (two) {
+    if (b.t < 24 && Math.floor(b.t / 4) % 2) return; // blinks out
+    const n = Math.floor(age / 3);
+    drawBigCentered(ctx, assets, two[0], 62, n);
+    drawBigCentered(ctx, assets, two[1], 98, n - two[0].replace(/ /g, '').length);
+  } else if (b.text === 'GO') {
+    drawAnim(ctx, assets, 'sign.go', sec(age), SCREEN_W - 44, 64);
+  } else {
+    drawText(ctx, assets, b.text, SCREEN_W / 2 - textWidth(assets, b.text, 2) / 2, 84, 2);
+  }
+}
+
+// Title screen built from the original pieces: blue glow, the chrome 3 in its claws, the METAL SLUG logo.
+function drawTitle(ctx, assets, g) {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
+  ctx.globalCompositeOperation = 'lighter';
+  drawFrame(ctx, assets, 'title.glow', 0, 16, 40);
+  ctx.globalCompositeOperation = 'source-over';
+  drawFrame(ctx, assets, 'title.claw.l', 0, TITLE.clawL[0], TITLE.clawL[1]);
+  drawFrame(ctx, assets, 'title.claw.r', 0, TITLE.clawR[0], TITLE.clawR[1]);
+  drawFrame(ctx, assets, 'title.three', 0, TITLE.three[0], TITLE.three[1]);
+  drawFrame(ctx, assets, 'title.logo', 0, TITLE.logo[0], TITLE.logo[1]);
+  drawFrame(ctx, assets, 'title.streak', 0, TITLE.streak[0], TITLE.streak[1]);
+  drawText(ctx, assets, 'MISSION 1', SCREEN_W / 2 - textWidth(assets, 'MISSION 1') / 2, 182);
+  if (Math.floor(g.frame / 30) % 2) drawText(ctx, assets, 'PRESS START', SCREEN_W / 2 - textWidth(assets, 'PRESS START') / 2, 198);
+}
+const TITLE = { logo: [2, 40], three: [196, 34], clawL: [158, 22], clawR: [222, 22], streak: [14, 140] };
+
