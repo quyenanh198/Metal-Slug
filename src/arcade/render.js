@@ -1,7 +1,7 @@
 // Draws the game state onto the 304x224 arcade canvas.
 import { drawAnim, drawBigCentered, drawContinueDigit, drawFrame, drawText, frameAt, textWidth } from './assets.js';
 import { ARENA, GROUND_BASE, PIECES, SCREEN_H, SCREEN_W, groundAt, pieceTop } from './level.js';
-import { FPS, WEAPONS } from './game.js';
+import { FPS, SLUG, WEAPONS } from './game.js';
 
 const sec = (frames) => frames / FPS;
 // Marco's upper body sits on the legs: offset of the upper sprite's bottom-centre from the feet anchor.
@@ -121,6 +121,7 @@ function drawActors(ctx, assets, g, camX, camY) {
   for (const gr of g.grenades) {
     const [x, y] = at(gr.x, gr.y);
     if (gr.kind === 'fireball') drawAnim(ctx, assets, 'hermit.fireball', sec(gr.t), x, y);
+    else if (gr.kind === 'cshell') drawAnim(ctx, assets, 'slug.shell', sec(gr.t), x, y);
     else if (gr.kind === 'shell') {
       // ten frames turn the shell from flying level to nose-down as it falls
       const fr = assets.anims['hermit.shell'].frames;
@@ -137,11 +138,13 @@ function drawActors(ctx, assets, g, camX, camY) {
 function drawPlayer(ctx, assets, g, at) {
   const p = g.player;
   if (g.phase === 'title') return;
+  if (g.vehicle && !p.riding && !g.arena) drawSlug(ctx, assets, g, ...at(g.vehicle.x, g.vehicle.y), null);
   if (!p.dead && p.invuln > 0 && Math.floor(p.invuln / 3) % 2) return;
   const [x, y] = at(p.x, p.y);
   const flip = p.facing < 0;
   if (g.phase === 'complete') return drawAnim(ctx, assets, 'marco.victory', sec(g.phaseT), x, y, flip);
   if (p.dead) return drawAnim(ctx, assets, 'marco.death', sec(p.deadT), x, y, flip);
+  if (p.riding) return drawSlug(ctx, assets, g, x, y, p);
 
   if (p.crouch) {
     const name = p.action === 'shoot' ? 'marco.crouchshoot' : p.moving ? 'marco.crouchwalk' : 'marco.crouch';
@@ -158,6 +161,30 @@ function drawPlayer(ctx, assets, g, at) {
 
   drawAnim(ctx, assets, legs, sec(legsT), x, y, flip);
   drawAnim(ctx, assets, upper, sec(upperT), x + UPPER_OFFSET.x * (flip ? -1 : 1), y + UPPER_OFFSET.y, flip);
+}
+
+// SV-001: the hull animation (it reverses rather than turning) plus the vulcan, whose hub sits on SLUG.pivot.
+// p = null draws the empty tank parked.
+function drawSlug(ctx, assets, g, x, y, p) {
+  let name = 'slug.idle', t = p ? g.frame : 0, reverse = false;
+  if (p) {
+    if (p.enterT > 0) { name = 'slug.enter'; t = 22 - p.enterT; }
+    else if (!p.grounded) { name = 'slug.jump'; t = p.airT; }
+    else if (p.landT > 0) { name = 'slug.land'; t = 12 - p.landT; }
+    else if (p.action === 'cannon') { name = 'slug.fire'; t = p.actionT; }
+    else if (p.moving) { name = 'slug.drive'; t = p.walkT; reverse = p.facing < 0; }
+  }
+  const anim = assets.anims[name];
+  let i = frameAt(anim, sec(t));
+  if (reverse) i = anim.frames.length - 1 - i;
+  drawFrame(ctx, assets, name, i, x, y);
+  // vulcan frame k points (k - 12) * 11.25 degrees clockwise from right; its hub is at the far end from the muzzle
+  const gun = p ? p.gun : 0;
+  const k = (((12 + Math.round(gun / (Math.PI / 16))) % 32) + 32) % 32;
+  const f = assets.anims['slug.vulcan'].frames[k];
+  const a = ((k - 12) * Math.PI) / 16, dx = Math.cos(a), dy = Math.sin(a);
+  const reach = (f.w / 2) * Math.abs(dx) + (f.h / 2) * Math.abs(dy) - 6;
+  drawFrame(ctx, assets, 'slug.vulcan', k, x + SLUG.pivot.x + dx * reach, y + SLUG.pivot.y + dy * reach);
 }
 
 function drawPineapple(ctx, x, y, t) {
@@ -193,6 +220,16 @@ function drawHud(ctx, assets, g) {
     else infinity(ctx, 92, 16);
     drawText(ctx, assets, String(p.bombs), 128, 16);
     drawText(ctx, assets, `1UP ${g.lives}`, 8, 16);
+    if (p.riding && g.vehicle) {
+      // Metal Slug armour gauge
+      drawText(ctx, assets, 'SV', 8, 27);
+      for (let i = 0; i < SLUG.hp; i++) {
+        ctx.fillStyle = '#101820';
+        ctx.fillRect(26 + i * 9, 26, 8, 10);
+        ctx.fillStyle = i < g.vehicle.hp ? (g.vehicle.hp === 1 ? '#ff4a2a' : '#ffd23a') : '#3a3a3a';
+        ctx.fillRect(27 + i * 9, 27, 6, 8);
+      }
+    }
     const tt = String(Math.max(0, g.time)).padStart(2, '0');
     drawText(ctx, assets, tt, SCREEN_W / 2 - textWidth(assets, tt, 2) / 2 + 40, 6, 2);
     if (WEAPONS[p.weapon] && p.weapon !== 'P') drawText(ctx, assets, p.weapon, 158, 16);

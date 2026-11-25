@@ -59,7 +59,7 @@ export function groundAt(x) {
 }
 
 // Scripted encounters. `at` = camera left edge that triggers the entry. Kinds:
-//   rebel {mode: 'idle'|'chat'|'grenadier'|'charge', x, facing}, crab {x, facing?}, pow {x, drop}, item {x, kind},
+//   rebel {mode: 'idle'|'chat'|'grenadier'|'charge', x, facing}, crab {x, facing?}, slug {x}, pow {x, drop}, item {x, kind},
 //   lock {x, final?}
 export const SCRIPT = [
   { at: 300, type: 'pow', x: 560, drop: 'H' },
@@ -96,6 +96,8 @@ export const SCRIPT = [
   { at: 2600, type: 'rebel', mode: 'charge', x: 2900, facing: -1 },
   { at: 2650, type: 'rebel', mode: 'charge', x: 2950, facing: -1 },
   { at: 3000, type: 'pow', x: 3300, drop: 'fish' },
+  // the SV-001 Metal Slug waits at the edge of the jungle
+  { at: 3200, type: 'slug', x: 3540 },
   { at: 3300, type: 'rebel', mode: 'chat', x: 3600, facing: -1 },
   { at: 3300, type: 'rebel', mode: 'grenadier', x: 3650, facing: -1 },
   { at: 3600, type: 'rebel', mode: 'charge', x: 3900, facing: -1 },

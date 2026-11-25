@@ -48,6 +48,10 @@ class ArcadeAudio {
     else if (ev === 'explode') this._tone(110, 0.32, 'sawtooth', 0.18, 32);
     else if (ev === 'enemyHit') this._tone(1200, 0.03, 'square', 0.04, 900);
     else if (ev === 'crabSwipe') this._tone(500, 0.18, 'sawtooth', 0.07, 120);
+    else if (ev === 'cannon') this._tone(90, 0.28, 'sawtooth', 0.18, 40);
+    else if (ev === 'slugEnter' || ev === 'slugExit') this._tone(300, 0.12, 'square', 0.08, 600);
+    else if (ev === 'slugHit') this._tone(160, 0.2, 'square', 0.12, 80);
+    else if (ev === 'slugDestroyed') [220, 165, 110].forEach((f, i) => setTimeout(() => this._tone(f, 0.25, 'sawtooth', 0.14, f / 2), i * 150));
     else if (ev === 'jump') this._tone(260, 0.08, 'triangle', 0.06, 520);
     else if (ev === 'bossShoot') this._tone(200, 0.25, 'sawtooth', 0.12, 520);
     else if (ev === 'bossCannon') this._tone(70, 0.4, 'sawtooth', 0.2, 30);

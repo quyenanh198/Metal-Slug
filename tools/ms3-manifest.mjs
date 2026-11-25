@@ -13,6 +13,7 @@ const M1 = 'Mission 1 [37874].png';
 const HERMIT = 'Huge Hermit [99310].png';
 const TITLE = 'Title Screen [551053].png';
 const CRAB = 'Chowmein Conga [153630].png';
+const SLUG = 'Metal Slug [32523].png';
 const CRAB_BG = [[8, 16, 0], [24, 24, 0], [0, 0, 0], [128, 72, 0], [179, 160, 106], [160, 152, 104], [176, 144, 96], [115, 123, 24], [64, 64, 32], [255, 255, 255]];
 
 export const ANIMS = [
@@ -93,6 +94,18 @@ export const ANIMS = [
       [30, 959, 66, 47], [112, 963, 59, 43], [196, 963, 64, 43], [272, 955, 68, 51], [354, 954, 68, 52], [443, 951, 68, 55],
       [26, 1017, 68, 54], [103, 1019, 68, 52], [190, 1017, 68, 54], [278, 1024, 68, 47], [351, 1028, 68, 43], [439, 1030, 66, 41], [523, 1050, 62, 21]], 14, false]
   ].map(([name, rects, fps, loop]) => ({ name, sheet: CRAB, rects, fps, loop, flood: true, bg: [112, 24, 0], extraBg: CRAB_BG })),
+
+  // SV-001 Metal Slug, "normal angle" body (faces right; it reverses rather than turning round). Marco rides inside.
+  { name: 'slug.idle', sheet: SLUG, region: [0, 20, 210, 62], fps: 8, sortX: true, minW: 40 },
+  { name: 'slug.drive', sheet: SLUG, region: [0, 95, 1330, 62], fps: 30, sortX: true, minW: 40 },
+  { name: 'slug.fire', sheet: SLUG, region: [0, 437, 650, 62], fps: 30, loop: false, sortX: true, minW: 40 },
+  { name: 'slug.jump', sheet: SLUG, region: [0, 572, 250, 76], fps: 12, loop: false, sortX: true, minW: 40 },
+  { name: 'slug.land', sheet: SLUG, region: [0, 737, 270, 62], fps: 20, loop: false, sortX: true, minW: 40 },
+  { name: 'slug.enter', sheet: SLUG, rects: [[10, 1438, 60, 45], [75, 1440, 60, 43], [140, 1438, 60, 45], [205, 1437, 65, 46], [275, 1444, 70, 39]], fps: 14, loop: false },
+  // Vulcan cannon: 32 directions clockwise, frame 4 points straight up, 12 right, 20 down, 28 left
+  { name: 'slug.vulcan', sheet: SLUG, rects: [[10,15311,21,21],[36,15309,18,23],[59,15307,15,25],[79,15306,13,26],[97,15306,13,26],[115,15306,13,26],[133,15307,15,25],[153,15309,18,23],[176,15311,21,21],[202,15313,24,19],[231,15317,25,15],[261,15319,26,13],[292,15319,26,13],[323,15319,26,13],[354,15319,24,15],[383,15319,23,18],[411,15319,21,21],[437,15319,18,23],[460,15319,15,25],[480,15319,13,26],[498,15319,13,26],[516,15319,13,26],[534,15319,15,25],[554,15319,18,23],[577,15319,21,21],[602,15319,23,18],[630,15319,25,15],[660,15319,26,13],[691,15319,26,13],[722,15319,26,13],[753,15317,25,15],[783,15314,23,18]], fps: 1, anchor: 'center' },
+  // Cannon shell flying level, glowing hotter frame to frame
+  { name: 'slug.shell', sheet: SLUG, rects: [3, 4, 5, 6].map((k) => [10 + 18 * k, 18911, 16, 16]), cellBg: true, fps: 16, anchor: 'center' },
 
   // Big "MISSION START!" font: A-Z, 1-9, ! and ?, each glyph on its own pink/green 32x32 cell (I, 1, ! are 16 wide)
   {
