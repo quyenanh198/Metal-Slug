@@ -19,7 +19,8 @@ npm run dev      # http://localhost:5174 (also reachable on the LAN)
 | Aim up / crouch | ↑ / ↓ (W / S) | up / down |
 | Shoot (knife when next to an enemy) | J or Z, mouse click | Square / X, R2 |
 | Jump | K, Space or X | Cross / A |
-| Grenade | L, G or C | Circle / B, R1 |
+| Grenade (Metal Slug cannon) | L, G or C | Circle / B, R1 |
+| Leave the Metal Slug | ↓ + jump | down + Cross / A |
 | Start / continue | Enter | Options / Start |
 
 ## What follows the arcade
@@ -30,6 +31,9 @@ npm run dev      # http://localhost:5174 (also reachable on the LAN)
   fall back to the handgun when empty. Shooting a rebel at close range uses the knife. 10 grenades, more from crates.
 - Rebel soldiers idle or chat until they spot Marco, panic, then rush in with a knife or lob stick grenades;
   they die with the shot or knife-cut death animations.
+- The SV-001 Metal Slug waits at the jungle edge: walk into it to drive. Its vulcan swings toward where you aim,
+  the cannon fires shells (uses bombs), and hits wear down its 3-point armour before it blows up and Marco bails out.
+- Chowmein Conga crabs on the beach and the wreck take several hits and swipe sand with a claw.
 - P.O.W.s are freed by touch or gunfire, walk over, hand over an item, salute and run off.
 - The camera only scrolls forward and stops at enemy waves until they are cleared ("GO").
 - Boss: after the last jungle wave Marco rides the Slug Transport Ferry across the sunset sea while Huge Hermit wades

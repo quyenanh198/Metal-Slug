@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BOSS_HP, CRAB_HP, createGame, spawnCrab, spawnRebel, startGame, step, _internal } from '../src/arcade/game.js';
+import { BOSS_HP, CRAB_HP, SLUG, createGame, spawnCrab, spawnRebel, startGame, step, _internal } from '../src/arcade/game.js';
 import { ARENA, groundAt, LEVEL_END, PIECES, SCRIPT } from '../src/arcade/level.js';
 
 const run = (g, input, frames) => { const seen = []; for (let i = 0; i < frames; i++) { step(g, typeof input === 'function' ? input(i) : input); seen.push(...g.events.map((e) => e.name)); } return seen; };
@@ -154,6 +154,56 @@ test('the knife takes half a crab in one cut', () => {
   assert.equal(c.hp, CRAB_HP - 3);
 });
 
+const inSlug = () => {
+  const g = playing();
+  g.vehicle = { x: g.player.x + 30, y: groundAt(g.player.x + 30), hp: SLUG.hp, cool: 0 };
+  const seen = run(g, { right: true }, 40);
+  assert.ok(seen.includes('slugEnter'));
+  run(g, {}, 30); // climb-in animation
+  return g;
+};
+
+test('walking into the parked Metal Slug climbs in; the vulcan fires where it points', () => {
+  const g = inSlug();
+  assert.equal(g.player.riding, true);
+  run(g, { shoot: true }, 12);
+  assert.ok(g.bullets.length >= 2);
+  assert.ok(g.bullets.every((b) => b.vx > 0 && b.vy === 0), 'level to the right');
+  g.bullets = [];
+  run(g, { up: true }, 40);
+  run(g, { up: true, shoot: true }, 6);
+  assert.ok(g.bullets.at(-1).vy < -8, 'after turning, straight up');
+});
+
+test('hits wear down the Metal Slug armour instead of killing Marco; the third destroys it and he bails out alive', () => {
+  const g = inSlug();
+  for (let i = 0; i < 3; i++) { g.player.invuln = 0; _internal.killPlayer(g); }
+  assert.equal(g.player.dead, false);
+  assert.equal(g.player.riding, false);
+  assert.equal(g.vehicle, null);
+  assert.ok(g.player.invuln > 0);
+});
+
+test('down + jump bails out of the Metal Slug, which stays parked for later', () => {
+  const g = inSlug();
+  const seen = run(g, (i) => ({ down: true, jump: i === 0 }), 2);
+  assert.ok(seen.includes('slugExit'));
+  assert.equal(g.player.riding, false);
+  assert.ok(g.vehicle && g.vehicle.hp === SLUG.hp);
+  run(g, {}, 80); // lands back on (and in) the tank once the cool-down is over
+  assert.equal(g.player.riding, true);
+});
+
+test('the Metal Slug cannon uses the bomb count and blows up rebels ahead', () => {
+  const g = inSlug();
+  const e = spawnRebel(g, g.player.x + 90, 'idle');
+  e.state = 'throw'; e.t = -500;
+  const seen = run(g, (i) => ({ bomb: i === 0 }), 60);
+  assert.ok(seen.includes('cannon'));
+  assert.equal(g.player.bombs, 9);
+  assert.equal(e.state, 'dead');
+});
+
 const onFerry = () => { const g = playing(); _internal.enterArena(g); return g; };
 const bossReady = (g) => { while (g.boss.state === 'enter') step(g, {}); };
 
@@ -212,6 +262,7 @@ test('a bot that cannot die clears every screen lock and completes Mission 1', (
   }
   assert.equal(g.phase, 'complete');
   assert.ok(seen.includes('go'), 'a GO! sign appeared after a cleared lock');
+  assert.ok(seen.includes('slugEnter'), 'the bot drove the Metal Slug through the jungle');
   assert.ok(seen.includes('bossDie'), 'Huge Hermit was destroyed');
   assert.ok(seen.includes('missionComplete'));
   assert.ok(g.pows >= 5, `rescued ${g.pows} P.O.W.s`);

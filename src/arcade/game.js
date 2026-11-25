@@ -27,6 +27,7 @@ export function createGame(seed = 7) {
     enemies: [], bullets: [], grenades: [], prisoners: [], items: [], effects: [],
     events: [], banner: null, nextId: 1,
     arena: false, boss: null, transition: null, // boss stage state
+    vehicle: null, // the SV-001 Metal Slug: {x, y, hp, cool} (follows Marco while he rides it)
     prevInput: {}
   };
 }
@@ -36,7 +37,8 @@ function newPlayer(x) {
     x, y: groundAt(x) - 110, vy: 0, facing: 1, grounded: false, crouch: false, aimUp: false,
     weapon: 'P', ammo: Infinity, bombs: 10, cooldown: 0, invuln: 120,
     action: null, actionT: 0, // 'shoot' | 'knife' | 'throw' (upper body one-shots)
-    moving: false, walkT: 0, airT: 0, dead: false, deadT: 0
+    moving: false, walkT: 0, airT: 0, dead: false, deadT: 0,
+    riding: false, gun: 0, enterT: 0, landT: 0 // gun = vulcan angle in radians (0 right, -PI/2 up)
   };
 }
 
@@ -90,7 +92,7 @@ function stepTime(g) {
   if (++g.timeT >= TIME_UNIT) {
     g.timeT = 0;
     g.time--;
-    if (g.time <= 0) killPlayer(g);
+    if (g.time <= 0) killPlayer(g, true);
   }
 }
 
@@ -99,6 +101,7 @@ function runScript(g) {
     const s = SCRIPT[g.scriptIndex++];
     if (s.type === 'rebel') spawnRebel(g, s.x, s.mode, s.facing);
     else if (s.type === 'crab') spawnCrab(g, s.x, s.facing ?? -1);
+    else if (s.type === 'slug') g.vehicle = { x: s.x, y: groundAt(s.x), hp: SLUG.hp, cool: 0 };
     else if (s.type === 'pow') g.prisoners.push({ id: g.nextId++, x: s.x, y: groundAt(s.x), state: 'tied', t: 0, drop: s.drop, facing: -1 });
     else if (s.type === 'item') spawnItem(g, s.kind, s.x, groundAt(s.x));
     else if (s.type === 'lock') g.lock = { x: s.x, final: !!s.final, engaged: false };
@@ -130,6 +133,8 @@ function stepPlayer(g, input, pressed) {
   }
   if (p.cooldown > 0) p.cooldown--;
   if (p.action && ++p.actionT > actionLength(p.action)) { p.action = null; p.actionT = 0; }
+  if (g.vehicle && g.vehicle.cool > 0) g.vehicle.cool--;
+  if (p.riding) return stepRiding(g, p, input, pressed);
 
   // movement
   const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
@@ -161,16 +166,115 @@ function stepPlayer(g, input, pressed) {
   if (wantShoot && p.cooldown <= 0) attack(g);
   if (pressed('bomb') && p.bombs > 0 && p.action !== 'throw') throwGrenade(g);
 
+  // walking (or dropping) into the parked Metal Slug climbs in
+  const v = g.vehicle;
+  if (v && !g.arena && v.cool <= 0 && p.vy >= 0 && Math.abs(p.x - v.x) < 16 && p.y >= v.y - 34 && p.y <= v.y + 4) enterSlug(g);
+  touchStuff(g, p);
+}
+
+function touchStuff(g, p) {
   // pickups
   for (const it of g.items) {
-    if (!it.taken && Math.abs(it.x - p.x) < 16 && Math.abs(it.y - (p.y - 12)) < 24) collect(g, it);
+    if (!it.taken && Math.abs(it.x - p.x) < (p.riding ? 26 : 16) && Math.abs(it.y - (p.y - 12)) < 24) collect(g, it);
   }
   // touching a tied prisoner frees him
-  for (const pw of g.prisoners) if (pw.state === 'tied' && Math.abs(pw.x - p.x) < 14 && Math.abs(pw.y - p.y) < 20) freePrisoner(g, pw);
+  for (const pw of g.prisoners) if (pw.state === 'tied' && Math.abs(pw.x - p.x) < (p.riding ? 24 : 14) && Math.abs(pw.y - p.y) < 20) freePrisoner(g, pw);
+}
+
+// ---------------------------------------------------------------- SV-001 Metal Slug
+// The tank always faces right and reverses to go left. The vulcan turns toward where Marco aims (over the top when
+// swinging round), the cannon fires shells forward and uses the BOMB count, and hits wear down its 3-point armour
+// instead of killing Marco. Down + jump bails out.
+export const SLUG = { hp: 3, speed: 1.25, jumpVy: -4.6, pivot: { x: 6, y: -33 }, barrel: 18 };
+const TURN = Math.PI / 16; // one vulcan frame
+
+function enterSlug(g) {
+  const p = g.player, v = g.vehicle;
+  p.riding = true; p.x = v.x; p.y = v.y; p.vy = 0; p.grounded = true; p.crouch = false;
+  p.enterT = 22; p.gun = 0; p.action = null;
+  ev(g, 'slugEnter');
+}
+
+function exitSlug(g) {
+  const p = g.player, v = g.vehicle;
+  p.riding = false;
+  v.x = p.x; v.y = groundAt(p.x); v.cool = 45;
+  p.vy = JUMP_VY; p.grounded = false; p.airT = 0; p.invuln = Math.max(p.invuln, 30);
+  ev(g, 'slugExit');
+}
+
+function hitSlug(g) {
+  const p = g.player, v = g.vehicle;
+  if (p.invuln > 0) return;
+  v.hp--; p.invuln = 60;
+  ev(g, 'slugHit');
+  if (v.hp > 0) return;
+  for (let i = 0; i < 4; i++) g.effects.push({ anim: 'fx.boom.grenade', x: p.x - 20 + i * 13, y: p.y - (i % 2) * 14, t: -i * 6 });
+  exitSlug(g);
+  g.vehicle = null;
+  p.invuln = 120;
+  ev(g, 'slugDestroyed');
+}
+
+export function slugMuzzle(p) {
+  const hx = p.x + SLUG.pivot.x, hy = p.y + SLUG.pivot.y;
+  return { x: hx + Math.cos(p.gun) * SLUG.barrel, y: hy + Math.sin(p.gun) * SLUG.barrel };
+}
+
+const turnBy = (a, d) => Math.atan2(Math.sin(a + d), Math.cos(a + d));
+
+function stepRiding(g, p, input, pressed) {
+  const v = g.vehicle;
+  if (p.enterT > 0) p.enterT--;
+  if (p.landT > 0) p.landT--;
+  const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  p.crouch = false;
+  p.aimUp = !!input.up;
+  if (dir) p.facing = dir;
+  p.moving = dir !== 0 && p.enterT <= 0;
+  if (p.moving) { p.x += dir * SLUG.speed; p.walkT++; } else p.walkT = 0;
+  p.x = Math.max(g.camX + 24, Math.min(g.camX + SCREEN_W - 24, p.x));
+  p.x = Math.min(p.x, LEVEL_END - 24);
+
+  if (input.down && pressed('jump') && p.enterT <= 0) { exitSlug(g); return; }
+  if (pressed('jump') && p.grounded) { p.vy = SLUG.jumpVy; p.grounded = false; p.airT = 0; ev(g, 'jump'); }
+  const ground = groundAt(p.x);
+  if (p.grounded) {
+    if (ground - p.y > 10) { p.grounded = false; p.vy = 0; p.airT = 0; } else p.y = ground;
+  }
+  if (!p.grounded) {
+    p.vy = Math.min(p.vy + GRAVITY, 7);
+    p.y += p.vy;
+    p.airT++;
+    if (p.y >= ground && p.vy >= 0) { p.y = ground; p.vy = 0; p.grounded = true; p.landT = 12; }
+  }
+  v.x = p.x; v.y = p.y;
+
+  // vulcan: one frame (11.25 degrees) every 2 steps toward the aim, swinging over the top between left and right
+  const target = input.up ? -Math.PI / 2 : input.down && !p.grounded ? Math.PI / 2 : p.facing > 0 ? 0 : Math.PI;
+  let diff = Math.atan2(Math.sin(target - p.gun), Math.cos(target - p.gun));
+  if (Math.abs(diff) > Math.PI - 0.01) diff = Math.cos(p.gun) > 0 ? -Math.PI : Math.PI;
+  if (g.frame % 2 === 0 && Math.abs(diff) > 0.01) p.gun = turnBy(p.gun, Math.sign(diff) * Math.min(Math.abs(diff), TURN));
+
+  if (p.enterT <= 0 && input.shoot && p.cooldown <= 0) {
+    // point blank: an enemy pressed against the hull is hit straight away (the on-foot knife rule, tank style)
+    const close = g.enemies.find((e) => alive(e) && Math.abs(e.x - p.x) < 24 && Math.abs(e.y - p.y) < 24);
+    const m = slugMuzzle(p);
+    if (close) killEnemy(g, close, 'rebel.death', 1);
+    else g.bullets.push({ id: g.nextId++, from: 'p', kind: 'hmg', x: m.x, y: m.y, vx: Math.cos(p.gun) * 9, vy: Math.sin(p.gun) * 9, life: 90 });
+    p.cooldown = 5;
+    ev(g, 'hmg');
+  }
+  if (p.enterT <= 0 && pressed('bomb') && p.bombs > 0 && p.action !== 'cannon') {
+    p.bombs--; p.action = 'cannon'; p.actionT = 0;
+    g.grenades.push({ id: g.nextId++, from: 'p', kind: 'cshell', x: p.x + 24, y: p.y - 26, vx: 4.6, vy: -0.8, a: 0.05, bounces: 1, t: 0, radius: 34, anim: 'fx.boom.grenade' });
+    ev(g, 'cannon');
+  }
+  touchStuff(g, p);
 }
 
 function actionLength(a) {
-  return a === 'shoot' ? 10 : a === 'knife' ? 18 : a === 'throw' ? 18 : 10;
+  return a === 'shoot' ? 10 : a === 'knife' ? 18 : a === 'throw' ? 18 : a === 'cannon' ? 24 : 10;
 }
 
 export function muzzle(p) {
@@ -230,9 +334,14 @@ function collect(g, it) {
   else { g.score += it.kind === 'chicken' ? 1000 : 500; ev(g, 'pickup'); }
 }
 
-function killPlayer(g) {
+// force: the TIME counter running out kills Marco even inside the Metal Slug
+function killPlayer(g, force = false) {
   const p = g.player;
   if (p.dead) return;
+  if (p.riding) {
+    if (!force) return hitSlug(g);
+    p.riding = false; g.vehicle = null;
+  }
   p.dead = true; p.deadT = 0; p.action = null;
   ev(g, 'playerDie');
 }
@@ -464,6 +573,7 @@ function enterArena(g) {
   g.arena = true;
   g.camX = ARENA.x; g.camY = 0;
   g.enemies = []; g.bullets = []; g.grenades = []; g.items = []; g.prisoners = []; g.effects = [];
+  g.vehicle = null; // the Metal Slug stays on the shore
   const keep = g.player;
   g.player = { ...newPlayer(ARENA.x + 200), weapon: keep.weapon, ammo: keep.ammo, bombs: keep.bombs, invuln: 0 };
   g.player.y = groundAt(g.player.x); g.player.grounded = true;
@@ -546,4 +656,4 @@ function stepCamera(g) {
 }
 
 // Exposed for tests
-export const _internal = { killPlayer, killEnemy, explode, collect, freePrisoner, enterArena, hitBoss };
+export const _internal = { enterSlug, exitSlug, hitSlug, killPlayer, killEnemy, explode, collect, freePrisoner, enterArena, hitBoss };
